@@ -31,6 +31,7 @@ not in these files.
 | [`failure-attribution.md`](failure-attribution.md) | Four-category rubric (vendor regression / protocol gap / supervisor miss / agent error) for attributing a production failure before retry. |
 | [`auto-trigger-discriminator.md`](auto-trigger-discriminator.md) | Kickoff-vs-iteration check at the head of every auto-triggered skill. |
 | [`markdown-lifecycle.md`](markdown-lifecycle.md) | YAML frontmatter conventions for project markdown. |
+| [`doc-consistency.md`](doc-consistency.md) | Cross-document semantic consistency — SSOT-for-values, value-authority ladder, post-edit sweep, declared quoters, escalation path. |
 | [`rubric-shared-anchors.md`](rubric-shared-anchors.md) | The five anchor categories every review rubric accepts. |
 
 ## Five token-efficiency rules

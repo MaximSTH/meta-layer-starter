@@ -18,5 +18,6 @@ shape.
 | Skill | Description |
 |---|---|
 | [`build-feature`](../../.agents/skills/build-feature/SKILL.md) | Walk the feature-build protocol when adding/creating/building/implementing a new feature — classify type, run near-match scan, FCPSS, tier-correct review. |
+| [`doc-consistency`](../../.agents/skills/doc-consistency/SKILL.md) | Walk the doc-consistency sweep when a session makes a substantive edit to a draft or active planning/spec doc in markdowns/ (decision changed, shared value updated, section restructured), or on explicit /doc-consistency invocation. Not for typo fixes, status flips, or style/voice issues — those belong to mechanical gates. |
 | [`refactor-extract`](../../.agents/skills/refactor-extract/SKILL.md) | Walk the 4-phase refactor extraction protocol when a mechanical signal fires (duplication cluster, file-size warn or fail) or an authoring-time near-match surfaces. Tier 1. |
 | [`refresh-vendor`](../../.agents/skills/refresh-vendor/SKILL.md) | Walk the vendor-knowledge refresh protocol on demand OR on the weekly calendar reminder OR on drift-on-encounter — fetch sources, surface drift, human gate. Change-marker semantics: no-op walks write the ledger, no PR. |

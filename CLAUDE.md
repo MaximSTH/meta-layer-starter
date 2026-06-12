@@ -82,6 +82,7 @@ agent should be able to find.
 | [`markdowns/protocols/evidence-discipline.md`](markdowns/protocols/evidence-discipline.md) | Pre-recommendation discipline — falsification first, asymmetric burden of proof, multi-channel verification, absence-of-evidence reporting. Fires before any destructive recommendation. |
 | [`markdowns/protocols/iteration-discipline.md`](markdowns/protocols/iteration-discipline.md) | When to keep iterating vs escalate. Mechanical-gate loops (3 rounds → escalate); judgment-gate loops (1 round → clarify). |
 | [`markdowns/protocols/failure-attribution.md`](markdowns/protocols/failure-attribution.md) | Four-category rubric (vendor regression / protocol gap / supervisor miss / agent error) for attributing a production failure. Fires when something ships broken. |
+| [`markdowns/protocols/doc-consistency.md`](markdowns/protocols/doc-consistency.md) | Cross-document semantic consistency — SSOT-for-values, value-authority ladder, post-edit consistency sweep (`/doc-consistency`), declared quoters, escalation path. |
 | [`markdowns/agents/vendor-knowledge/`](markdowns/agents/vendor-knowledge/) | Per-vendor capability files (Claude Code, Codex CLI, Antigravity CLI) — volatility-tagged with source URLs. Run `/refresh-vendor` to update. |
 | [`markdowns/agents/model-capabilities.md`](markdowns/agents/model-capabilities.md) | Per-model selection + cost reference. Drives the agent's model picks for tasks where the harness allows model override. |
 | [`markdowns/agents/skills-index.md`](markdowns/agents/skills-index.md) | Auto-generated index of authored skills — regenerated on every commit from `.agents/skills/<name>/SKILL.md` frontmatter. |
@@ -102,6 +103,14 @@ agent should be able to find.
   **except** for files under the exception folders listed in that
   protocol's "Exception folders" section (currently `markdowns/briefs/`
   and `markdowns/agents/refresh-log.md`).
+- **SSOT for shared values.** Every shared literal fact (price, date,
+  limit, target) has exactly one canonical home per lifecycle stage —
+  other docs and sibling sections link, never restate. Artifacts that
+  must restate (diagrams,
+  summary tables) declare what they quote. After a substantive edit to a
+  draft/active doc, run the consistency sweep per
+  [`markdowns/protocols/doc-consistency.md`](markdowns/protocols/doc-consistency.md)
+  (the `/doc-consistency` skill walks it).
 - **Frontend / UX.** When building or editing anything visual, do proper UX
   research. Never ship UI changes without considering the user flow.
 - **Audits.** Be deeply thorough on first pass. Check every rule, every
