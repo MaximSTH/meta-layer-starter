@@ -14,10 +14,11 @@ For a worked example of what the gate actually looks like in action
 
 ## What this template gives you
 
+<!-- quotes: markdowns/protocols/README.md#the-protocols-shipped-with-this-starter, markdowns/agents/skills-index.md -->
 | Layer | What's in here | What you'll add |
 |---|---|---|
-| **Meta layer** | 17 **protocols** (pre-ship gates, cross-vendor review, supervision, build/refactor flows, evidence + iteration + failure-attribution discipline, markdown lifecycle, etc.) + vendor knowledge files for Claude Code / Codex CLI / Antigravity CLI | Brand guide, personas, copywriting register, product plans |
-| **Harness** | 3 meta-skills (`/build-feature`, `/refactor-extract`, `/refresh-vendor`) + Claude Code hooks (secret-file deny + write-guard) + sync scripts (AGENTS.md → CLAUDE.md, `.agents/skills/` → `.claude/skills/`) + a pre-commit stub | Project-specific drift checks, lint config, file-size hooks |
+| **Meta layer** | 18 **protocols** (pre-ship gates, cross-vendor review, supervision, build/refactor flows, evidence + iteration + failure-attribution discipline, markdown lifecycle, doc consistency, etc.) + vendor knowledge files for Claude Code / Codex CLI / Antigravity CLI | Brand guide, personas, copywriting register, product plans |
+| **Harness** | 4 meta-skills (`/build-feature`, `/refactor-extract`, `/refresh-vendor`, `/doc-consistency`) + Claude Code hooks (secret-file deny + write-guard) + sync scripts (AGENTS.md → CLAUDE.md, `.agents/skills/` → `.claude/skills/`) + a pre-commit stub | Project-specific drift checks, lint config, file-size hooks |
 | **Surfaces** | Empty (this is a template) | Your product code |
 | **Model** | (vendor-owned, nothing to add) | n/a |
 
@@ -27,7 +28,7 @@ The template works in two modes:
 
 | Mode | Requires | What you get |
 |---|---|---|
-| **Solo** (default) | Claude Code only | All 17 protocols + FCPSS + stake matrix + supervision + skills + hooks + Tier 3/4 auto-merge. Tier 1/2 PRs degrade to same-vendor self-review instead of cross-vendor. |
+| **Solo** (default) | Claude Code only | All 18 protocols + FCPSS + stake matrix + supervision + skills + hooks + Tier 3/4 auto-merge. Tier 1/2 PRs degrade to same-vendor self-review instead of cross-vendor. |
 | **Cross-vendor** | Claude Code + at least one of: Codex CLI, Antigravity CLI | Everything above + cross-vendor review on Tier 1/2 PRs. The peer vendor reads the diff cold and surfaces anchored observations the worker missed. |
 
 Install pointers per CLI:
