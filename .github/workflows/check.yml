@@ -1,0 +1,64 @@
+# Mirrors scripts/pre-commit on every PR + every push to main. Catches
+# anything that bypassed the local hook (commit --no-verify, hook not
+# installed, etc.). Same gates run twice: once on the contributor's
+# machine, once in the cloud — CI is authoritative.
+#
+# See: scripts/pre-commit + markdowns/meta-layer/cross-vendor-harness.md
+
+name: check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  pre-commit-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history so check-skill-sync.sh can compare against the
+          # index correctly. Shallow clones break the --staged flow.
+          fetch-depth: 0
+
+      - name: Sync AGENTS.md → CLAUDE.md and verify clean
+        run: |
+          bash scripts/sync-agents-md.sh
+          # If the sync produces a diff, the contributor edited CLAUDE.md
+          # directly or forgot to install the hook locally. Fail with a
+          # clear pointer.
+          if ! git diff --quiet; then
+            echo "::error::CLAUDE.md is out of sync with AGENTS.md."
+            echo "Fix locally: run scripts/install-hooks.sh and re-commit."
+            git diff --stat
+            exit 1
+          fi
+
+      - name: Sync .agents/skills/ → .claude/skills/ and verify clean
+        run: |
+          bash scripts/sync-skills.sh
+          if ! git diff --quiet; then
+            echo "::error::.claude/skills/ is out of sync with .agents/skills/."
+            echo "Fix locally: run scripts/install-hooks.sh and re-commit."
+            git diff --stat
+            exit 1
+          fi
+
+      - name: Validate skill frontmatter (portable subset)
+        run: bash scripts/check-skill-frontmatter.sh
+
+      - name: Verify skill mirror has not drifted
+        run: bash scripts/check-skill-sync.sh
+
+      - name: Regenerate skill index and verify clean
+        run: |
+          bash scripts/generate-skill-index.sh
+          if ! git diff --quiet; then
+            echo "::error::markdowns/agents/skills-index.md is out of sync with .agents/skills/."
+            echo "Fix locally: run scripts/install-hooks.sh and re-commit."
+            git diff --stat
+            exit 1
+          fi

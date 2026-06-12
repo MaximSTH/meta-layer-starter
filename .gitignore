@@ -1,0 +1,33 @@
+# Standard
+.DS_Store
+*.log
+*.swp
+.idea/
+.vscode/
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor backups
+*.bak
+*.tmp
+*.orig
+
+# Local vendor configs (per-developer)
+.claude/settings.local.json
+
+# Agent-stack tile PNGs stay local — generated from prompts, not tracked.
+# See markdowns/meta-layer/agent-stack-prompts.md for the recipe.
+markdowns/meta-layer/agent-stack-tiles/
+markdowns/meta-layer/agent-stack-tiles-archive/
+markdowns/meta-layer/_output/
+
+# Quarto build artifacts
+markdowns/meta-layer/.quarto/
+markdowns/meta-layer/_freeze/

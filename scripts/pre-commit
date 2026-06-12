@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+#
+# pre-commit — minimal stub for the meta-layer-starter template.
+#
+# This stub only runs the project-agnostic gates that ship with the
+# template:
+#   - sync CLAUDE.md from AGENTS.md (AGENTS.md is canonical)
+#   - sync .claude/skills/ from .agents/skills/ (.agents/ is canonical)
+#   - validate skill frontmatter (~80 token descriptions, narrow triggers)
+#   - verify skill mirror hasn't drifted from .agents/ source
+#
+# Add your own project-specific gates BELOW the marker — drift checks for
+# SSOTs, lint rules, dependency-license checks, RLS catalog drift, etc.
+#
+# To install: scripts/install-hooks.sh
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SCRIPTS="$REPO_ROOT/scripts"
+
+# Tell the sync scripts they're running under pre-commit so they stage
+# the regenerated mirrors. Without this signal, mirrors land as unstaged
+# changes that leak into later commits.
+export PRE_COMMIT=1
+
+# ── Project-agnostic gates (shipped with the template) ───────────────────
+
+# Keep CLAUDE.md in sync with AGENTS.md (AGENTS.md is the master).
+if [ -f "$SCRIPTS/sync-agents-md.sh" ]; then
+  bash "$SCRIPTS/sync-agents-md.sh"
+fi
+
+# Sync skill files across vendor config dirs.
+if [ -f "$SCRIPTS/sync-skills.sh" ]; then
+  bash "$SCRIPTS/sync-skills.sh"
+fi
+
+# Validate skill frontmatter (narrow trigger descriptions).
+if [ -f "$SCRIPTS/check-skill-frontmatter.sh" ]; then
+  bash "$SCRIPTS/check-skill-frontmatter.sh"
+fi
+
+# Verify skill symlinks haven't drifted.
+if [ -f "$SCRIPTS/check-skill-sync.sh" ]; then
+  bash "$SCRIPTS/check-skill-sync.sh"
+fi
+
+# Regenerate the skill index from .agents/skills/<name>/SKILL.md frontmatter.
+if [ -f "$SCRIPTS/generate-skill-index.sh" ]; then
+  bash "$SCRIPTS/generate-skill-index.sh"
+fi
+
+# ── Project-specific gates (add yours here) ──────────────────────────────
+#
+# Examples to add per your stack:
+#   - File-size hook (warn at 500 LOC, fail at 1000) for your language
+#   - SSOT drift check — e.g. tier strings appearing outside the canonical file
+#   - RLS catalog drift if you use Postgres + RLS
+#   - Em-dash / brand-voice checks on copywriting files
+#   - Dependency license audit
+#
+# See markdowns/protocols/build-feature.md + protocols/refactor-extraction.md
+# for the convention: every authored rule cites a mechanical check by name.
+
+exit 0

@@ -1,0 +1,177 @@
+# AGENTS.md — `<PROJECT-NAME>`
+
+This file is the canonical cross-surface agent context. Codex CLI and
+Antigravity CLI read it natively. Claude Code reads `CLAUDE.md`, a
+verbatim mirror auto-synced from this file by
+`scripts/sync-agents-md.sh` on every commit (via the pre-commit hook).
+**Edit `AGENTS.md`; never edit `CLAUDE.md` directly — your edits will be
+overwritten on the next commit.**
+
+Surface-specific rules live in per-directory `AGENTS.md` files (the same
+sync rule applies — each `AGENTS.md` auto-mirrors to a sibling
+`CLAUDE.md`). Create them as you add surfaces.
+
+See [`markdowns/meta-layer/cross-vendor-harness.md`](markdowns/meta-layer/cross-vendor-harness.md)
+for the full topology: canonical-source model, per-vendor consumption,
+sync mechanics.
+
+## Operating principles (always-on)
+
+**Tradeoff:** These principles bias toward supervision and verification
+over autonomy and speed. For trivial tasks, use judgment. For
+stakes-bearing tasks (security, money, user safety), they take
+precedence unless explicitly overridden — mild assent ("ok", "fine")
+does not count as override.
+
+- **Brutal honesty over flattering responses.** Admit when a prior
+  suggestion was reaching. State plainly when a claim can't be verified.
+- **Push back before implementing.** Disagree with reasoning first,
+  not after. If the supervisor still wants to proceed, ask once about
+  judgment override, then proceed.
+- **Take positions, not menus.** One clear "do this" recommendation.
+  The supervisor redirects if wrong.
+- **Cut value-justification.** Distinguish need-driven from
+  nice-to-have. Don't reach to please.
+- **Scope, not cleanliness.** Do what the task requires. The trigger
+  for cleanup is a mechanical signal (duplication cluster, file-size
+  warning) or an explicit ask — not "while I'm here."
+- **Walk FCPSS before shipping.** Any work affecting user-visible or
+  system-visible behavior walks the FCPSS gate per
+  [`markdowns/protocols/fcpss-gate.md`](markdowns/protocols/fcpss-gate.md)
+  before merge.
+- **Verify positive before destructive.** Recommending removal,
+  drop, or breaking change requires positive evidence the thing is
+  broken — not absence of evidence it works. "I couldn't find X" is
+  not the same as "X doesn't exist." Walk
+  [`markdowns/protocols/evidence-discipline.md`](markdowns/protocols/evidence-discipline.md).
+
+**These principles work if:** fewer confident-but-wrong recommendations,
+fewer destructive actions on working code, supervisors stay in the
+loop on the things that matter, agents stay out of the loop on the
+things that don't.
+
+## Project Overview
+
+`<PROJECT-NAME>` is `<ONE-LINE-DESCRIPTION>`.
+
+- **Stack:** `<STACK — e.g. "Next.js on Vercel + Postgres + Redis">`
+- **Distribution:** `<HOW USERS GET IT — web, mobile app, CLI, etc.>`
+- **Pricing / monetization:** `<FREE / PAID / SAAS / etc.>`
+
+## Doc Map
+
+Navigation surface. This map points at the cross-surface artifacts every
+agent should be able to find.
+
+| Document | What it covers |
+|---|---|
+| [`markdowns/protocols/`](markdowns/protocols/) | Cross-cutting protocols + rubrics — review rubrics, pre-ship gates, refactor flows, supervision template. Index in [README](markdowns/protocols/README.md). |
+| [`markdowns/protocols/fcpss-gate.md`](markdowns/protocols/fcpss-gate.md) | Universal pre-ship checklist (Functional / Cross-cutting / Performance / Security / Stability). |
+| [`markdowns/protocols/stake-matrix.md`](markdowns/protocols/stake-matrix.md) | Tier 1–4 change-severity classification. Tier decides reviewer + merge behavior. |
+| [`markdowns/protocols/cross-vendor-review.md`](markdowns/protocols/cross-vendor-review.md) | Peer-vendor code-review rubric (anchored observations only). |
+| [`markdowns/protocols/supervision.md`](markdowns/protocols/supervision.md) | Tier-aware merge gating, chat-checkpoint template, decision-moment notation. |
+| [`markdowns/protocols/build-feature.md`](markdowns/protocols/build-feature.md) | Feature-build walk — classification, near-match scan, FCPSS, tier-correct review. |
+| [`markdowns/protocols/refactor-extraction.md`](markdowns/protocols/refactor-extraction.md) | 4-phase signal-driven refactor flow. |
+| [`markdowns/protocols/refresh-vendor.md`](markdowns/protocols/refresh-vendor.md) | Vendor-knowledge refresh cadence + drift report. |
+| [`markdowns/protocols/evidence-discipline.md`](markdowns/protocols/evidence-discipline.md) | Pre-recommendation discipline — falsification first, asymmetric burden of proof, multi-channel verification, absence-of-evidence reporting. Fires before any destructive recommendation. |
+| [`markdowns/protocols/iteration-discipline.md`](markdowns/protocols/iteration-discipline.md) | When to keep iterating vs escalate. Mechanical-gate loops (3 rounds → escalate); judgment-gate loops (1 round → clarify). |
+| [`markdowns/protocols/failure-attribution.md`](markdowns/protocols/failure-attribution.md) | Four-category rubric (vendor regression / protocol gap / supervisor miss / agent error) for attributing a production failure. Fires when something ships broken. |
+| [`markdowns/agents/vendor-knowledge/`](markdowns/agents/vendor-knowledge/) | Per-vendor capability files (Claude Code, Codex CLI, Antigravity CLI) — volatility-tagged with source URLs. Run `/refresh-vendor` to update. |
+| [`markdowns/agents/model-capabilities.md`](markdowns/agents/model-capabilities.md) | Per-model selection + cost reference. Drives the agent's model picks for tasks where the harness allows model override. |
+| [`markdowns/agents/skills-index.md`](markdowns/agents/skills-index.md) | Auto-generated index of authored skills — regenerated on every commit from `.agents/skills/<name>/SKILL.md` frontmatter. |
+| [`markdowns/meta-layer/cross-vendor-harness.md`](markdowns/meta-layer/cross-vendor-harness.md) | Cross-vendor harness topology — canonical-source model (AGENTS.md is master), per-vendor consumption paths, sync mechanics, asymmetric-by-design areas (hooks). |
+| [`markdowns/meta-layer/comparisons.md`](markdowns/meta-layer/comparisons.md) | Honest head-to-head vs Karpathy's CLAUDE.md, ECC, and Hermes Agent. When this template is the right choice and when it isn't. |
+| [`markdowns/meta-layer/onboarding.md`](markdowns/meta-layer/onboarding.md) | First-day walkthrough for someone new to a project built on this template. Slim — the 30 minutes before their first PR review. |
+| [`markdowns/meta-layer/example-pr-walkthrough.md`](markdowns/meta-layer/example-pr-walkthrough.md) | Synthetic worked example showing what the gate produces in practice — chat checkpoint, FCPSS coverage, cross-vendor review report, two iteration rounds. Read once before your first real PR review. |
+| [`markdowns/design/brand-guide-template.md`](markdowns/design/brand-guide-template.md) + [`personas/_template.md`](markdowns/design/personas/_template.md) + [`copywriting/register-template.md`](markdowns/copywriting/register-template.md) | Surface skeletons — copy to project files when authoring brand, persona, and copywriting register artifacts. |
+| [`markdowns/briefs/`](markdowns/briefs/) | One-session scratch pads — committed at session start, removed post-"ship it". |
+
+## Workflow Rules
+
+- **Plans go in `markdowns/`** — every non-trivial plan saved as a `.md` file
+  under the right subfolder.
+- **Markdown lifecycle.** Every new `.md` in `markdowns/` carries YAML
+  frontmatter (`name`, `description`, `status`) per
+  [`markdowns/protocols/markdown-lifecycle.md`](markdowns/protocols/markdown-lifecycle.md) —
+  **except** for files under the exception folders listed in that
+  protocol's "Exception folders" section (currently `markdowns/briefs/`
+  and `markdowns/agents/refresh-log.md`).
+- **Frontend / UX.** When building or editing anything visual, do proper UX
+  research. Never ship UI changes without considering the user flow.
+- **Audits.** Be deeply thorough on first pass. Check every rule, every
+  mapping. Never say "looks clean" without verifying.
+- **Session briefs.** Every session that runs cross-vendor review saves its
+  brief at `markdowns/briefs/<artifact-name>.md` as Step 0, passes it via
+  `--brief`, and `git rm`s it AFTER "ship it" lands. See the
+  "Session-brief lifecycle" section in
+  [`markdowns/protocols/supervision.md`](markdowns/protocols/supervision.md).
+
+## Engineering Standards
+
+Cross-surface rules. Surface-specific rules live in per-directory
+`AGENTS.md` siblings (e.g. `<surface-A>/AGENTS.md`, auto-mirrored to
+`<surface-A>/CLAUDE.md` by the pre-commit hook).
+
+### Code entropy + extraction
+
+- **Use-existing-first.** Before creating any new file or helper, run the
+  near-match scan per
+  [`markdowns/protocols/build-feature.md`](markdowns/protocols/build-feature.md).
+  The `/build-feature` skill auto-walks it.
+- **Entropy gates.** A file-size hook + duplication checker (jscpd or
+  similar) keeps the codebase from growing unbounded. Configure these for
+  your stack.
+- **Response substrate.** Signal-driven refactor extractions are Tier 1 by
+  default per
+  [`markdowns/protocols/refactor-extraction.md`](markdowns/protocols/refactor-extraction.md).
+  The `/refactor-extract` skill walks execution.
+
+### Testing
+
+- Bug fixes: write the failing test FIRST, then make it green.
+- New pure-logic modules ship with a matching test file.
+- "Done" means CI green on the PR branch, not "agent says so".
+- Tests must be deterministic: inject clocks, no real network, no real DB.
+
+### Security
+
+- No secrets in client code.
+- No new database tables without row-level-security policies (if your stack
+  supports them).
+- User input sanitized at system boundaries.
+- Web: security headers (CSP, X-Frame-Options), CSRF protection on mutations.
+
+### Cross-vendor review on Tier 1 + Tier 2 PRs
+
+Tier 1 + Tier 2 PRs route through
+[`scripts/cross-vendor-review.sh`](scripts/cross-vendor-review.sh) (default
+reviewer Codex if your `scripts/setup.sh` chose multi-vendor mode; claude
+self-review if you chose solo). Ship when no anchored observations
+remain unfixed; no-anchor observations auto-decline after one surface.
+Tier 3 self-reviews with the same rubric in fresh context; Tier 4 skips.
+See [`markdowns/protocols/cross-vendor-review.md`](markdowns/protocols/cross-vendor-review.md).
+
+### Supervision and shipping (tier-aware merge gating)
+
+- **Tier 1 + Tier 2 PRs do NOT auto-merge.** When CI is green, post the
+  structured chat checkpoint (what-this-PR-does + audit trail + FCPSS) and
+  wait for explicit "ship it" before `gh pr merge`. Tier 3 + Tier 4
+  auto-merge on CI green.
+- **Worker self-check before cross-vendor.** Same rubric in fresh context
+  first, then peer vendor. The residual delta is the load-bearing signal.
+
+Chat-checkpoint template, decision-moment notation
+(`[SUPERVISOR]` / `[WORKER]` / `[REVIEWER]` / `[AUTO]` / `[LOG]`), and the
+brief lifecycle all live in
+[`markdowns/protocols/supervision.md`](markdowns/protocols/supervision.md).
+
+### Definition of Done
+
+Before marking work complete, run through the FCPSS gate
+[`markdowns/protocols/fcpss-gate.md`](markdowns/protocols/fcpss-gate.md).
+Key gates: error handling, content safety, navigation/UX, tests pass,
+security, docs updated.
+
+**Duplication policy.** 1-2 inline copies are fine; 3 opens a refactor
+ticket; 4+ means the refactor IS the change. Full rule in
+[`markdowns/protocols/refactor-extraction.md`](markdowns/protocols/refactor-extraction.md).
