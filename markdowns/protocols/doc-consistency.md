@@ -52,10 +52,20 @@ quote**:
 
 The declaration converts the worst drift category — invisible
 duplicates — into enumerable ones: the consistency sweep includes every
-declared quoter of a changed value. **Scope guard:** `quotes:` is only
+declared quoter of a changed value, **regardless of its lifecycle
+status** — a declared quoter is swept even when it is `reference` or
+sits outside the draft+active set. **Scope guard:** `quotes:` is only
 for artifacts that *cannot* link. It is not a general dependency-graph
 mechanism; semantic dependencies between prose docs are the sweep's
 job, not a declaration's.
+
+**In template/library repos, declare quoters aggressively.** Where
+reference docs *are* the product (a starter, a library), the draft+active
+sweep scope will not reach a `reference` doc that restates a value (a
+count, a version, a limit) whose canonical home is an index — so any
+such restatement needs a `quotes:` declaration to be swept. README
+files, comparison tables, and "what's in here" summaries are the usual
+offenders.
 
 ## Rule 2: Value-authority ladder
 
