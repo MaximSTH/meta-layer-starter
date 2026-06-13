@@ -18,12 +18,13 @@ everyone. Honest read below.
 
 ## The head-to-head
 
+<!-- quotes: markdowns/protocols/README.md#the-protocols-shipped-with-this-starter, markdowns/agents/skills-index.md -->
 | | **Karpathy's CLAUDE.md** | **ECC** | **Hermes Agent** | **meta-layer-starter** |
 |---|---|---|---|---|
 | **Category** | Behavioral primer | Harness operator system | Autonomous agent platform | Discipline substrate |
 | **Form factor** | One ~60-line CLAUDE.md | npm packages + GitHub App + Rust control plane + Tkinter dashboard + skills catalog | Server-resident binary + cross-platform connectors | Template repo (clone, adapt, sync) |
 | **Where it runs** | Inside your IDE harness | Inside your IDE harness, expanding it | On your server, persistent | Your repo (markdown + scripts + hooks) |
-| **What it ships** | 4 behavioral principles | 64 agents + 261 skills + 84 command shims | Slack/Discord/Email connectors + sandboxing + scheduled jobs | 17 protocols + 3 portable skills + vendor knowledge + harness sync |
+| **What it ships** | 4 behavioral principles | 64 agents + 261 skills + 84 command shims | Slack/Discord/Email connectors + sandboxing + scheduled jobs | 18 protocols + 4 portable skills + vendor knowledge + harness sync |
 | **Activity model** | Always-on context | Active (call into during sessions) | Autonomous (runs on its own) | Passive (read as context, walked by skills) |
 | **Best for** | Solo Claude, low-stakes work | Power users wanting maximum feature breadth | Teams who want agents-as-employees | Solo / small teams running multi-vendor on stakes-bearing work |
 | **Commercial** | OSS only | OSS + Pro tier ($19/seat/mo) | OSS only | OSS only |
