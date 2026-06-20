@@ -2,7 +2,7 @@
 name: vendor-knowledge-antigravity-cli
 description: Volatility-tagged knowledge of Antigravity CLI — Google's coding CLI (`agy`). Canonical instructions file, skills, subagents, hooks, auth, rate limits, cost, MCP, headless invocation. Drives cross-vendor scripts and /refresh-vendor.
 status: reference
-last-verified: 2026-06-10
+last-verified: 2026-06-20
 ---
 
 # Antigravity CLI — vendor knowledge
@@ -114,15 +114,22 @@ Source: [antigravity.google/docs/cli-overview](https://antigravity.google/docs/c
 
 ## 2. Skills / protocols
 
-- **First-party skills primitive — same shape as Claude Code.**
+- **First-party skills primitive — open Agent Skills standard.**
   Skills are self-contained directories anchored on a `SKILL.md`
-  file. `[STABLE]`
+  file; `SKILL.md` is the only required file, with optional `scripts/`,
+  examples, and resource templates alongside it. Antigravity "strictly
+  follows the open Agent Skills standard" and Google ships an official
+  Codelab on authoring them. `[STABLE]`
   ([antigravity.google/docs/skills](https://antigravity.google/docs/skills),
-  [antigravity.google/docs/cli-plugins](https://antigravity.google/docs/cli-plugins))
-- **Discovery:** the `/skills` slash command browses loaded local and
-  global Agent Skills inside the TUI per
-  [antigravity.google/docs/cli-reference](https://antigravity.google/docs/cli-reference).
-  `[STABLE]`
+  [codelabs.developers.google.com/getting-started-with-antigravity-skills](https://codelabs.developers.google.com/getting-started-with-antigravity-skills))
+- **Discovery locations — CONFIRMED 2026-06-20.** Workspace skills load
+  from `<workspace-root>/.agents/skills/<skill-folder>/`; global skills
+  from `~/.gemini/antigravity/skills/<skill-folder>/`. Antigravity
+  **defaults to `.agents/skills`**, with backward compatibility for the
+  older `.agent/skills` directory. The `/skills` slash command browses
+  loaded local + global skills inside the TUI. `[STABLE]`
+  ([antigravity.google/docs/skills](https://antigravity.google/docs/skills),
+  [antigravity.google/docs/cli-reference](https://antigravity.google/docs/cli-reference))
 - **Plugin-based skill/agent discovery:** the CLI scans installed
   plugin directories and exposes their skills and specialized agents
   for execution (CHANGELOG v1.0.1); plugins install to the shared
@@ -131,13 +138,14 @@ Source: [antigravity.google/docs/cli-overview](https://antigravity.google/docs/c
   Skill-derived slash commands execute from autocomplete (v1.0.4 fix).
   `[MEDIUM]`
   ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.1/v1.0.2/v1.0.4/v1.0.7)
-- **Cross-vendor `.agents/skills/` compatibility:** TBD,
-  low-confidence signal (2026-06-10) — a community migration guide
-  ([medium.com/google-cloud/migrating-to-antigravity-cli](https://medium.com/google-cloud/migrating-to-antigravity-cli-a841c6964f37))
-  claims skills are auto-discovered from `.agents/skills/` per the
-  open Agent Skills standard. NOT corroborated by CHANGELOG or README;
-  binary check blocked this walk. Re-trigger: next agy install or
-  first Antigravity-as-reviewer run. `[MEDIUM]`
+- **Cross-vendor `.agents/skills/` compatibility — CONFIRMED, was TBD.**
+  The 2026-06-10 walk flagged this as a low-confidence community signal
+  not corroborated by official channels. Now corroborated by the
+  official Antigravity skills docs + Google Codelab: workspace skills
+  load from `.agents/skills/` per the open Agent Skills standard. This
+  template's root [`.agents/skills/`](../../../.agents/skills/) is read
+  by Antigravity natively — no Antigravity-side mirror needed. `[STABLE]`
+  ([antigravity.google/docs/skills](https://antigravity.google/docs/skills))
 
 ---
 
@@ -417,9 +425,10 @@ page in depth.
   Antigravity as the peer reviewer. Run a single small-rubric pass
   against a throwaway target and inspect for unexpected disk writes.
   Must be run on **agy ≥ 1.0.6** (see §9 sandbox version floor). The
-  smoke test doubles as the re-trigger for the low-confidence TBDs in
-  §1 / §2 / §3 / §4 ("next agy install or first
-  Antigravity-as-reviewer run").
+  smoke test doubles as the re-trigger for the remaining
+  low-confidence TBDs in §1 / §3 / §4 ("next agy install or first
+  Antigravity-as-reviewer run"). §2 (skills) was confirmed against
+  official docs on the 2026-06-20 walk and is no longer pending.
 
 ## See also
 
