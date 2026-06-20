@@ -26,5 +26,7 @@ knows when freshness was last confirmed.
 
 ## Entries
 
-(none yet — first entry will land when `/refresh-vendor` runs against
-a vendor file in this template)
+```
+2026-06-20  codex-cli        drift-applied  Skills §2/§3/§10 + harness reframe. Codex now ships a first-party skills primitive (open Agent Skills standard, .agents/skills/ scan cwd→repo-root, name+description, $skill + description-match invocation). Prior "no first-party skills primitive" claim corrected. Source: developers.openai.com/codex/skills, agentskills.io.
+2026-06-20  antigravity-cli  drift-applied  Skills §2 upgraded from TBD/low-confidence to CONFIRMED. Workspace skills load from <workspace-root>/.agents/skills/, global from ~/.gemini/antigravity/skills/; open Agent Skills standard, official Google Codelab. Cross-vendor .agents/skills/ compatibility confirmed. Source: antigravity.google/docs/skills, codelabs.developers.google.com/getting-started-with-antigravity-skills.
+```

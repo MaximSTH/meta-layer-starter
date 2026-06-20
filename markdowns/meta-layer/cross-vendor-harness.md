@@ -27,6 +27,18 @@ consumption table below. The path is `.gemini/` because Antigravity
 inherits its config root from there; the file is Antigravity's, not
 Gemini's. Gemini CLI is no longer an active vendor in this template.
 
+**Skills are the same story as `AGENTS.md`, not a Claude-only feature.**
+`.agents/skills/` is the canonical source *because* it is the open
+Agent Skills standard ([agentskills.io](https://agentskills.io)) —
+the directory layout Codex and Antigravity both scan natively. So
+`.agents/skills/` is the shared standard surface; `.claude/skills/` is
+just the **Claude adapter** (Claude Code looks in `.claude/skills/`,
+not `.agents/skills/`, hence the mirror). Codex scans `.agents/skills`
+from cwd up to the repo root; Antigravity loads workspace skills from
+`<workspace-root>/.agents/skills/`. Neither needs a mirror — both read
+the canonical source directly. Confirmed against vendor docs on the
+2026-06-20 refresh walk; see each vendor knowledge file's §2.
+
 ## The rule
 
 **Edit the source. Never edit the mirror.** The pre-commit hook
@@ -48,8 +60,8 @@ mirror before the source.
 | Vendor | Reads | Via |
 |---|---|---|
 | Claude Code | `CLAUDE.md`, `.claude/skills/` | Native lookup (both auto-synced from sources) |
-| Codex CLI | `AGENTS.md` | Native lookup — no glue needed |
-| Antigravity CLI | `AGENTS.md` | Reads via `.gemini/settings.json` `context.fileName: ["AGENTS.md"]` override — Antigravity's config root inherits the `~/.gemini/` path |
+| Codex CLI | `AGENTS.md`, `.agents/skills/` | Native lookup — no glue needed. Scans `.agents/skills` from cwd up to repo root |
+| Antigravity CLI | `AGENTS.md`, `.agents/skills/` | `AGENTS.md` via `.gemini/settings.json` `context.fileName: ["AGENTS.md"]` override; skills loaded directly from `<workspace-root>/.agents/skills/` (Antigravity defaults to `.agents/skills`) |
 
 ## Sync mechanics
 
@@ -72,9 +84,12 @@ consume:
 - `name` (lowercase slug)
 - `description` (narrow trigger spec, ~80 tokens)
 
-These two are the cross-vendor common denominator. Vendors that ship
-a skills primitive (Claude Code today; Antigravity per its docs)
-auto-route skills by description match and treat `name` as the slug.
+These two are the cross-vendor common denominator. All three active
+vendors ship a skills primitive and auto-route by `description` match,
+treating `name` as the slug: Claude Code (`.claude/skills/`), Codex
+(`.agents/skills/`), and Antigravity (`.agents/skills/`). Codex
+additionally supports explicit `$skill` invocation. Confirmed against
+each vendor's docs on the 2026-06-20 walk.
 
 Claude Code supports a richer frontmatter set (`effort`, `hooks`,
 `allowed-tools`, `model`, etc.). When a skill needs those — for
@@ -83,23 +98,31 @@ that hooks into a specific event — the Claude-specific fields go in
 an **overlay file** beside `SKILL.md`:
 
 ```
-.agents/skills/<name>/SKILL.md                  # portable subset
+.agents/skills/<name>/SKILL.md                  # portable subset (all vendors)
 .agents/skills/<name>/.claude.frontmatter.yml   # Claude-specific overlay
+.agents/skills/<name>/agents/openai.yaml        # Codex-specific overlay (optional)
 ```
 
-The sync script will merge the overlay into the Claude mirror's
-frontmatter on emit. As of this revision none of the shipped skills
-use the overlay; the convention is documented for forward use.
+Each vendor reads only the portable `SKILL.md` plus its own overlay; a
+vendor never sees another vendor's overlay. The sync script merges the
+`.claude.frontmatter.yml` overlay into the Claude mirror's frontmatter
+on emit; Codex reads `agents/openai.yaml` in place (no mirror).
+Keeping vendor-specific fields OUT of `SKILL.md` is enforced by
+[`scripts/check-skill-frontmatter.sh`](../../scripts/check-skill-frontmatter.sh),
+which fails the commit if a non-portable field appears in `SKILL.md`.
+As of this revision none of the shipped skills use either overlay; the
+convention is documented for forward use.
 
 ## Per-vendor config directories
 
 | Dir | Why it exists |
 |---|---|
-| `.claude/skills/` | Auto-generated mirror of `.agents/skills/`. Claude Code reads from here. |
-| `.claude/hooks/` | Hooks are Claude-Code-specific (28 events vs Codex's 6, different semantics). No portable abstraction. Native to Claude only. |
+| `.agents/skills/` | Canonical skill source AND the open-standard surface Codex + Antigravity read directly. Not Claude-specific. |
+| `.claude/skills/` | Claude's adapter — auto-generated mirror of `.agents/skills/`, because Claude Code looks in `.claude/skills/` rather than `.agents/skills/`. |
+| `.claude/hooks/` | Hooks are Claude-Code-specific (28 events vs Codex's 10, different semantics). No portable abstraction. Native to Claude only. |
 | `.gemini/settings.json` | Antigravity's `context.fileName: ["AGENTS.md"]` override. The path is `.gemini/` because Antigravity's config root inherits from `~/.gemini/`; this is Antigravity's config file, not Gemini's. |
-| `.codex/` | **Does not exist** — Codex reads `AGENTS.md` natively with no override needed. The absence is intentional, not a gap. |
-| `.antigravity/` | **Does not exist** — Antigravity reads its config from `~/.gemini/`, so this template ships its project-level override at `.gemini/settings.json` instead. |
+| `.codex/` | **Does not exist** — Codex reads both `AGENTS.md` and `.agents/skills/` natively with no override needed. The absence is intentional, not a gap. (A per-skill `agents/openai.yaml` overlay, if ever needed, lives inside `.agents/skills/<name>/`, not here.) |
+| `.antigravity/` | **Does not exist** — Antigravity reads `AGENTS.md` via `.gemini/settings.json` and skills from `.agents/skills/` directly. No project-level skills dir of its own is needed. |
 
 ## Asymmetry that's NOT going away
 

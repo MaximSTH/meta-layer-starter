@@ -17,7 +17,7 @@ support, headless invocation.
 | File | Vendor | What it covers |
 |---|---|---|
 | [`vendor-knowledge/claude-code.md`](vendor-knowledge/claude-code.md) | Anthropic — Claude Code | Native `CLAUDE.md` lookup, `.claude/skills/`, hook events, rate limits, MCP client + server, headless invocation. |
-| [`vendor-knowledge/codex-cli.md`](vendor-knowledge/codex-cli.md) | OpenAI — Codex CLI | Native `AGENTS.md` lookup, `.codex/agents/` subagents, hook flag-gated, rate limits, MCP client, `codex exec` headless. |
+| [`vendor-knowledge/codex-cli.md`](vendor-knowledge/codex-cli.md) | OpenAI — Codex CLI | Native `AGENTS.md` lookup, `.agents/skills/` skills primitive (open Agent Skills standard), `.codex/agents/` subagents, hooks, rate limits, MCP client + server, `codex exec` headless. |
 | [`vendor-knowledge/antigravity-cli.md`](vendor-knowledge/antigravity-cli.md) | Google — Antigravity CLI (coding CLI; config root inherits from `~/.gemini/`) | Reads `AGENTS.md` via `.gemini/settings.json` override, skills primitive, settings.json options, `agy --print` headless. |
 
 ## Also in this directory

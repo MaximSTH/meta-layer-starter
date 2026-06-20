@@ -2,7 +2,7 @@
 name: vendor-knowledge-codex-cli
 description: Volatility-tagged knowledge of Codex CLI — canonical file (AGENTS.md native), skills, subagents, hooks, auth, rate limits, cost, MCP, headless. Drives cross-vendor scripts and /refresh-vendor.
 status: reference
-last-verified: 2026-06-10
+last-verified: 2026-06-20
 ---
 
 # Codex CLI — vendor knowledge
@@ -80,16 +80,42 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
 
 ## 2. Skills / protocols
 
-- **No first-party skills primitive in the same shape as Claude Code's
-  `SKILL.md`.** Codex relies on AGENTS.md instructions + subagents +
-  prompts; it does not auto-discover a `~/.codex/skills/` tree. `[MEDIUM]`
-  ([developers.openai.com/codex/cli](https://developers.openai.com/codex/cli))
-- **Repo posture:** the `markdowns/protocols/` substance layer is
-  Codex's portable equivalent — protocols are read into the prompt via
-  `AGENTS.md` references. The `.agents/skills/` cross-vendor skill skeleton
-  carries `name` + `description` only; on Codex it serves as a
-  human-readable protocol pointer rather than an auto-invoked surface.
-  `[STABLE]`
+- **First-party skills primitive — `.agents/skills/`, open Agent Skills
+  standard.** Codex auto-discovers skills as directories anchored on a
+  `SKILL.md` file with `name` + `description` frontmatter (both
+  required), the same shape as Claude Code's. Skills build on the open
+  Agent Skills standard ([agentskills.io](https://agentskills.io)).
+  This corrects the prior walk's "no first-party skills primitive"
+  claim — that is now false. `[MEDIUM]`
+  ([developers.openai.com/codex/skills](https://developers.openai.com/codex/skills),
+  [agentskills.io](https://agentskills.io))
+- **Discovery scan:** "Codex scans `.agents/skills` in every directory
+  from your current working directory up to the repository root." Four
+  scope levels: `$REPO_ROOT/.agents/skills`, `$CWD/../.agents/skills`
+  (each parent up the chain), `$HOME/.agents/skills` (personal), and
+  `/etc/codex/skills` (system admin). `[MEDIUM]`
+  ([developers.openai.com/codex/skills](https://developers.openai.com/codex/skills))
+- **Invocation — both modes:** explicit (`$skill` mention in the prompt)
+  AND implicit (auto-routed by `description` match). Unlike Codex
+  subagents (§3, explicit-only), skills DO support description-match
+  auto-invocation. `[MEDIUM]`
+  ([developers.openai.com/codex/skills](https://developers.openai.com/codex/skills))
+- **Skill directory layout:** `SKILL.md` is the only required file;
+  optional `scripts/`, `references/`, `assets/` subdirs, plus an
+  optional `agents/openai.yaml` for Codex-specific metadata. The
+  `agents/openai.yaml` overlay is Codex's analogue to Claude's
+  `.claude.frontmatter.yml` — vendor-specific fields stay out of the
+  portable `SKILL.md`. `[MEDIUM]`
+  ([developers.openai.com/codex/skills](https://developers.openai.com/codex/skills))
+- **Repo posture:** this template's root [`.agents/skills/`](../../../.agents/skills/)
+  is picked up by Codex's repo-root scan **with zero extra wiring** —
+  the canonical source IS the standard surface Codex consumes. The
+  four shipped skills (`build-feature`, `doc-consistency`,
+  `refactor-extract`, `refresh-vendor`) carry the portable `name` +
+  `description` subset, which is exactly what Codex requires. No
+  `.codex/`-side mirror is needed (contrast Claude, which needs the
+  `.claude/skills/` mirror). The `markdowns/protocols/` substance layer
+  remains the deeper reference these skills point into. `[STABLE]`
 - **Slash commands:** Codex ships built-in slash commands (`/agent`,
   `/permissions`, `/login`, `/logout`, `/status`, etc.) for runtime
   control. These are vendor-built-ins, not user-authored skills. `[MEDIUM]`
@@ -136,11 +162,12 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   report via `report_agent_job_result`). Subagents inherit the parent
   session's sandbox policy and runtime overrides. `[MEDIUM]`
   ([developers.openai.com/codex/subagents](https://developers.openai.com/codex/subagents))
-- **Cross-vendor commentary:** Codex's explicit-only model means the 
-  `/build-feature` skill and `/refresh-vendor` skill cannot rely on
-  description-match auto-invocation here — they ship as human-invoked
-  prompts, not agents. The `.agents/skills/` skeleton carries
-  protocol pointers Codex consumes via AGENTS.md. `[STABLE]`
+- **Cross-vendor commentary:** the explicit-only model applies to
+  **subagents**, not skills. Skills (§2) DO auto-route by description
+  match on Codex, so `/build-feature` and `/refresh-vendor` are
+  auto-invocable from `.agents/skills/` here just as on Claude Code.
+  Codex subagents, by contrast, require an explicit `/agent <name>` or
+  prompt naming. Don't conflate the two surfaces. `[STABLE]`
 
 ---
 
@@ -383,10 +410,12 @@ limited Codex CLI access. `[STABLE]`
 
 ## 10. Gaps / Codex-CLI-down notes
 
-- **No first-party skills primitive.** Cross-vendor skills ship as
-  protocol pointers Codex consumes via `AGENTS.md`, not as auto-invoked
-  surfaces. Manual `/agent <name>` is the equivalent invocation path.
-  `[STABLE]`
+- **Skills: first-party, NOT a gap anymore.** Codex auto-discovers and
+  auto-invokes `.agents/skills/` (open Agent Skills standard) — see §2.
+  The repo's root `.agents/skills/` works on Codex out of the box. The
+  prior "no first-party skills primitive" gap (carried through the
+  2026-06-10 walk) is closed as of 2026-06-20. `[MEDIUM]`
+  ([developers.openai.com/codex/skills](https://developers.openai.com/codex/skills))
 - **Subagent depth capped at 1** (`max_depth=1` default). Compounds with
   Claude Code's "subagents cannot spawn subagents." Fan-out wider than
   1-level requires shell-driven orchestration. `[STABLE]`
