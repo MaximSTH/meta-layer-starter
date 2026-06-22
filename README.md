@@ -1,16 +1,20 @@
 # meta-layer-starter
 
-A template repository for spinning up an agentic codebase governed by the
-**four-layer agent stack** pattern: **model · harness · meta layer ·
-surfaces**.
+<p align="center">
+  <img src="assets/img/agent-stack-01.jpg" alt="The four-layer agent stack: model, harness, meta layer, surfaces" width="520">
+</p>
+
+The rules, gates, and review steps I use so AI agents ship code I can
+trust, not code that just looks done. Same setup across Claude Code,
+Codex, and Antigravity.
+
+**Who it's for:** people who ship real code with AI agents and want to
+own that process, not rent it from one vendor. If an agent saying
+"done" isn't enough for you, this gives you the checks that are.
 
 > **Status: v0, first public draft.** The patterns inside survived
 > months of internal use on a real production codebase, but external
-> feedback hasn't shaped them yet. File issues; expect evolution.
-
-For a worked example of what the gate actually looks like in action
-(chat checkpoint, FCPSS coverage, cross-vendor review report), see
-[`markdowns/meta-layer/example-pr-walkthrough.md`](markdowns/meta-layer/example-pr-walkthrough.md).
+> feedback hasn't shaped them yet. File issues, expect it to change.
 
 ## What this template gives you
 
@@ -148,11 +152,11 @@ context.
 
 ## Walking through the protocols
 
-Each protocol is a thin framework abstract, roughly 50-100 lines that
-describe the *shape* of a rule, gate, or rubric without binding it to
-any one stack. Every file ends with an **"Adapt for your project"**
-section marking where you author project-specific examples. Read each
-protocol once, then customize the closing section before applying.
+Each protocol is a thin framework abstract, roughly 50-100 lines. It
+describes the *shape* of a rule or gate without tying it to your stack.
+Every file ends with an **"Adapt for your project"** section, which is
+where you write the examples for your own project. Read each one once,
+then fill in that closing section before you apply it.
 
 Recommended read order for a fresh contributor:
 
