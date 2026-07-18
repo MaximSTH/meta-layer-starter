@@ -22,6 +22,28 @@ venv/
 # Local vendor configs (per-developer)
 .claude/settings.local.json
 
+# Secrets — never commit. Backstopped by the pre-push gitleaks gate
+# (see markdowns/protocols/supervision.md "Pre-push secret gate").
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+*_rsa
+*.rsa
+credentials.json
+service-account*.json
+auth.json
+.codex/auth.json
+secrets.*
+*.secret
+*.secrets
+.netrc
+
 # Agent-stack card masters stay local; only the web JPGs (hero + 3x3 grid) are tracked.
 assets/img/*.png
 
