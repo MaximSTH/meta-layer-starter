@@ -2,7 +2,10 @@
 name: vendor-knowledge-antigravity-cli
 description: Volatility-tagged knowledge of Antigravity CLI — Google's coding CLI (`agy`). Canonical instructions file, skills, subagents, hooks, auth, rate limits, cost, MCP, headless invocation. Drives cross-vendor scripts and /refresh-vendor.
 status: reference
-last-verified: 2026-06-20
+last-verified: 2026-07-18
+headless-write-probe: passed
+probe-version: 1.1.4
+probe-date: 2026-07-18
 ---
 
 # Antigravity CLI — vendor knowledge
@@ -16,29 +19,28 @@ change-marker semantics (no edit on no-op). Linked from the README at
 **Install:** `curl -fsSL https://antigravity.google/cli/install.sh | bash`
 (places `agy` at `~/.local/bin/agy`).
 
-## Installer gotchas (verified 2026-06-09 against installer v1.0.7)
+## Installer behavior (verified 2026-07-18 against agy v1.1.4)
 
-- **The installer silently modifies `~/.zshrc` and `~/.zprofile`.** It
-  appends `export PATH="...:$PATH"` to both files with no prompt and no
-  opt-out flag. To prevent this, either run the installer in a clean
-  shell and revert the PATH additions afterward, or download and edit
-  the install script before running.
-- **`--skip-aliases` and `--skip-path` flags do NOT exist.** Some
-  earlier documentation mentioned them; the actual installer (v1.0.7)
-  parses only `-d/--dir` and `-h/--help`. Verified via `bash install.sh -h`.
-- **`-d /custom/path` does not isolate the install.** The installer
-  places the binary at the custom path AND at `~/.local/bin/agy`
-  (default). Belt-and-suspenders behavior; both copies will exist.
-- **Claim-vintage map.** Claims citing `agy --help` 2026-05-28 were
-  observed on the initial local install; flag claims dated 2026-06-09
-  were verified against `agy --help` (v1.0.7). Both binary channels —
-  the published docs site is an incomplete subset of the binary's
-  actual flag set, and binary `--help` is the authoritative source per
-  [`refresh-vendor.md`](../../protocols/refresh-vendor.md) reliability
-  ordering. Claims added on the 2026-06-10 walk cite the official
-  repo CHANGELOG instead — the binary was unavailable that walk
-  (uninstalled locally; release-tarball execution not authorized) and
-  the docs site was SPA-rendered, unreachable via WebFetch.
+- **The bootstrap and native setup command have different flag sets.**
+  The fetched `install.sh` bootstrap parses only `-d/--dir` and
+  `-h/--help`, then delegates shell configuration to `agy install`.
+  `agy install --help` v1.1.4 additionally exposes `--skip-aliases`
+  and `--skip-path`. Do not pass those flags to the curl-piped bootstrap;
+  invoke the installed binary's setup subcommand when they are needed.
+- **Default setup can still modify shell profiles.** The bootstrap invokes
+  `agy install` without either skip flag. The current script was inspected,
+  not executed as a fresh install, so the exact profile edits remain a
+  source-level claim rather than a second destructive empirical test.
+- **`-d /custom/path` now isolates the binary target.** The current
+  bootstrap replaces the default target with the custom directory and writes
+  one binary there; the former duplicate-at-`~/.local/bin/agy` behavior is no
+  longer present in the script.
+- **Claim-vintage map.** Executable flag claims and the safety probe below
+  were verified against local `agy` v1.1.4 on 2026-07-18. Release behavior
+  between v1.0.8 and v1.1.4 is anchored to the official repo CHANGELOG and
+  v1.1.4 release notes. Antigravity's docs pages remained SPA-rendered and
+  empty through WebFetch, and the in-app browser was unavailable; claims that
+  depend only on those pages remain explicitly unverified.
 
 ## TOC
 
@@ -82,27 +84,33 @@ Source: [antigravity.google/docs/cli-overview](https://antigravity.google/docs/c
 
 - **Settings file location:** `~/.gemini/antigravity-cli/settings.json`.
   The parent directory is `~/.gemini/` — Antigravity's chosen config
-  root path. `[STABLE]`
+  root path. Local v1.1.4's bundled `antigravity_guide` identifies this as
+  the authoritative CLI settings file and enumerates
+  `toolPermission`, `enableTerminalSandbox`,
+  `allowNonWorkspaceAccess`, and `artifactReviewPolicy`. `[STABLE]`
   ([antigravity.google/docs/cli-using](https://antigravity.google/docs/cli-using),
   [antigravity.google/docs/cli-overview](https://antigravity.google/docs/cli-overview))
 - **Project context file:** Antigravity CLI reads project-level config
   from [`.gemini/settings.json`](../../../.gemini/settings.json) with
-  `context.fileName: ["AGENTS.md"]`. **TBD, low-confidence signal
-  (2026-06-10):** community sources (Medium migration guide, search
-  snippets) claim Antigravity now reads `AGENTS.md` at the project
-  root natively and that `agy inspect` lists loaded config
+  `context.fileName: ["AGENTS.md"]`. **TBD, low-confidence signal:**
+  community sources claim Antigravity also reads `AGENTS.md` at the project
+  root natively
   ([medium.com/google-cloud/migrating-to-antigravity-cli](https://medium.com/google-cloud/migrating-to-antigravity-cli-a841c6964f37),
-  [dev.to/arindam_1729](https://dev.to/arindam_1729/antigravity-cli-a-hands-on-guide-to-googles-terminal-coding-agent-5bc7)) — NOT
-  corroborated by CHANGELOG or README, binary check blocked this walk.
-  The override stays load-bearing until verified. Re-trigger: next agy
-  install or first Antigravity-as-reviewer run. `[MEDIUM]`
+  [dev.to/arindam_1729](https://dev.to/arindam_1729/antigravity-cli-a-hands-on-guide-to-googles-terminal-coding-agent-5bc7)),
+  but this is not corroborated by the CHANGELOG or README. The same community
+  source's `agy inspect` claim is refuted by `agy --help` v1.1.4, which exposes
+  no `inspect` subcommand. The override stays load-bearing until native
+  `AGENTS.md` lookup is independently verified. `[MEDIUM]`
 - **Hierarchical lookup:** partially resolved — the permission system
   merges **three config tiers**: project-level permissions, user
   settings shared with Antigravity, and the CLI `settings.json`
-  (CHANGELOG v1.0.5). Full settings lookup chain (global / workspace /
-  JIT) still TBD; docs site (`/docs/cli-settings`) is SPA-rendered and
-  unreachable via WebFetch. `[MEDIUM]`
-  ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.5)
+  (CHANGELOG v1.0.5). Project-specific configurations under
+  `~/.gemini/config/projects/` take precedence over global CLI settings
+  (v1.0.12). The repo-local `.gemini/settings.json` remains the context-file
+  adapter and defense-in-depth policy declaration; the 2026-07-18 headless
+  probe established that the global CLI settings file is the load-bearing
+  policy channel when no active workspace is resolved. `[MEDIUM]`
+  ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.5/v1.0.12)
 - **Repo posture.** This template's `.gemini/settings.json` with
   `context.fileName: ["AGENTS.md"]` is what Antigravity reads at the
   project level. No new repo file required; AGENTS.md is the
@@ -124,7 +132,8 @@ Source: [antigravity.google/docs/cli-overview](https://antigravity.google/docs/c
   [codelabs.developers.google.com/getting-started-with-antigravity-skills](https://codelabs.developers.google.com/getting-started-with-antigravity-skills))
 - **Discovery locations — CONFIRMED 2026-06-20.** Workspace skills load
   from `<workspace-root>/.agents/skills/<skill-folder>/`; global skills
-  from `~/.gemini/antigravity/skills/<skill-folder>/`. Antigravity
+  from `~/.gemini/config/skills/<skill-folder>/` according to the current
+  Google Codelab. Antigravity
   **defaults to `.agents/skills`**, with backward compatibility for the
   older `.agent/skills` directory. The `/skills` slash command browses
   loaded local + global skills inside the TUI. `[STABLE]`
@@ -138,6 +147,11 @@ Source: [antigravity.google/docs/cli-overview](https://antigravity.google/docs/c
   Skill-derived slash commands execute from autocomplete (v1.0.4 fix).
   `[MEDIUM]`
   ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.1/v1.0.2/v1.0.4/v1.0.7)
+- **Bundled guide + dynamic reload.** v1.0.10 added the built-in
+  `antigravity_guide` skill. v1.0.8 fixed dynamic reloading of custom skills
+  and system slash commands after conversation switches and `/add-dir`, so
+  newly discovered skills no longer require a full CLI restart. `[MEDIUM]`
+  ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.8/v1.0.10)
 - **Cross-vendor `.agents/skills/` compatibility — CONFIRMED, was TBD.**
   The 2026-06-10 walk flagged this as a low-confidence community signal
   not corroborated by official channels. Now corroborated by the
@@ -163,13 +177,26 @@ Source: [antigravity.google/docs/cli-overview](https://antigravity.google/docs/c
   `--print-timeout` 5m0s governs headless runs). Subagent
   conversations are excluded from `/resume` (v1.0.6). `[MEDIUM]`
   ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.2/v1.0.6)
+- **Custom agents and nested subagents are first-party.** v1.1.1 added the
+  `--agent` launch flag plus `agent` / `agents` subcommands and recursively
+  relays nested-subagent state and confirmations to the root conversation.
+  Dynamic subagent definitions use Markdown rather than JSON as of v1.0.16.
+  Local `agy --help` and `agy agent --help` v1.1.4 confirm the launch flag and
+  listing subcommands. `[MEDIUM]`
+  ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.16/v1.1.1)
+- **Subagent execution posture changed.** v1.0.14 enabled always-proceed
+  artifact handling for subagents to prevent hangs while the parent is
+  blocked; v1.1.1 added recursive confirmation routing for nested depths.
+  Treat this as orchestration behavior, not evidence of an unrestricted
+  filesystem policy. `[MEDIUM]`
+  ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.14/v1.1.1)
 - **Parallel spawn / nesting cap / recursion guard:** TBD,
-  low-confidence signal (2026-06-10) — community tutorials
+  low-confidence signal — community tutorials
   ([datacamp.com/tutorial/antigravity-cli](https://www.datacamp.com/tutorial/antigravity-cli))
   demonstrate subagents running concurrently, orchestrated dynamically
-  with no static config files. Caps and nesting limits remain
-  unconfirmed by official channels; binary check blocked this walk.
-  Re-trigger: next agy install or first Antigravity-as-reviewer run.
+  with no static config files. The v1.1.1 CHANGELOG now confirms nested
+  subagents, but caps and recursion limits remain unconfirmed by official
+  channels. Re-trigger when the official subagents page is fetchable.
   `[MEDIUM]`
 
 ---
@@ -181,16 +208,22 @@ Source: [antigravity.google/docs/cli-overview](https://antigravity.google/docs/c
   [antigravity.google/docs/cli-reference](https://antigravity.google/docs/cli-reference).
   A dedicated `/docs/hooks` page documents the event surface; the page
   is SPA-rendered and was unreachable via WebFetch this walk. `[MEDIUM]`
-- **Configuration shape:** TBD, low-confidence signal (2026-06-10) —
+- **Configuration contract:** TBD, low-confidence signal —
   a community migration guide
   ([medium.com/google-cloud/migrating-to-antigravity-cli](https://medium.com/google-cloud/migrating-to-antigravity-cli-a841c6964f37))
-  claims hooks live in a workspace-local
-  `.agents/hooks.json` and use a JSON stdin/stdout contract (hook
+  claims hooks use a JSON stdin/stdout contract (hook
   receives event JSON on stdin, emits `{"decision":"allow"}` /
   `{"decision":"deny"}`), replacing the prior exit-code model. NOT
-  corroborated by CHANGELOG or README; binary check blocked this
-  walk. Re-trigger: next agy install or first
-  Antigravity-as-reviewer run. `[MEDIUM]`
+  corroborated by CHANGELOG or README. Re-trigger when the official hooks page
+  is fetchable or a safe local hook probe is authorized. `[MEDIUM]`
+- **Configuration paths are now upstream-corroborated.** Workspace hooks use
+  `.agents/hooks.json`; v1.1.1 fixed those hooks failing to reload after a
+  folder was trusted. The shared hooks path is
+  `~/.gemini/config/hooks.json`; v1.0.8 corrected `/hooks` writing to the
+  CLI-private path instead. The event payload and decision schema above still
+  need binary-level observation, so only the paths graduate from
+  community-only confidence. `[MEDIUM]`
+  ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.8/v1.1.1)
 - **Repo posture:** hooks stay Claude-only by default. Antigravity
   hooks portabilized only when the hook prevents a destructive
   non-code action (rare). `[STABLE]`
@@ -283,13 +316,15 @@ page in depth.
   legacy top-level `mcp_config.json` path, v1.0.3 fix); servers are
   also installable via the `/mcp` slash command's "Install" flow.
   Direct `url` keys configure HTTP servers (v1.0.5); server-launch
-  timeout is configurable, `-1` disables it (v1.0.7); server init is
-  parallelized so one slow server doesn't block the rest (v1.0.4).
+  timeout is configurable, `-1` disables it (v1.0.7), and the default
+  connection timeout increased to 60 seconds in v1.0.15; server init is
+  parallelized so one slow server doesn't block the rest (v1.0.4). v1.0.14
+  fixed another CLI/permission-manager MCP configuration-path mismatch.
   NOTE: the docs site describes an `mcpServers` object in
   `settings.json` — the CHANGELOG's `config/mcp_config.json` outranks
   it per channel ordering; reconcile against the binary on next
   install. `[MEDIUM]`
-  ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.3/v1.0.4/v1.0.5/v1.0.7,
+  ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.3/v1.0.4/v1.0.5/v1.0.7/v1.0.14/v1.0.15,
   [antigravity.google/docs/mcp](https://antigravity.google/docs/mcp))
 - **OAuth 2.0 supported** for HTTP servers via the
   `oauthClientCredentials` object on the server config. `[STABLE]`
@@ -300,7 +335,8 @@ page in depth.
   scope MCP exclusively to client-side connection. (Codex CLI closed
   its equivalent gap — `codex mcp-server` verified 2026-06-10; see
   [`codex-cli.md`](codex-cli.md) §8. Antigravity now stands alone
-  among our peer vendors here.) `[STABLE]`
+  among our peer vendors here.) Local `agy --help` v1.1.4 still exposes no
+  MCP server subcommand. `[STABLE]`
 - **Cross-vendor posture:** MCP cross-vendor servers still deferred —
   shell invocation via
   [`cross-vendor-review.sh`](../../../scripts/cross-vendor-review.sh)
@@ -317,7 +353,7 @@ page in depth.
   alias `agy --prompt`). Runs a single prompt non-interactively and
   prints the response. `[STABLE]`
   ([antigravity.google/docs/cli-reference](https://antigravity.google/docs/cli-reference),
-  `agy --help` output 2026-05-28)
+  `agy --help` output 2026-07-18)
 - **Timeout:** `--print-timeout` (default `5m0s`). `[STABLE]`
 - **Model selection:** `--model` flag sets the model at launch; the
   `models` subcommand lists available models (both added v1.0.5).
@@ -328,12 +364,16 @@ page in depth.
   AppContainer on Windows). Restricts SHELL execution by the agent;
   **does NOT block file-write tool calls.** `[STABLE]`
   ([antigravity.google/docs/cli-sandbox](https://antigravity.google/docs/cli-sandbox))
-- **⚠ Sandbox version floor for headless mode:** `--sandbox` did NOT
+- **Two headless safety floors:** `--sandbox` did NOT
   propagate in headless print mode (`-p` / `--print`) before v1.0.6 —
   fixed in v1.0.6 ("ensuring sandbox isolation is correctly enforced
-  during non-interactive execution"). Treat `agy -p ... --sandbox` as
-  sandboxed ONLY on **agy ≥ 1.0.6**. `[MEDIUM]`
-  ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.6)
+  during non-interactive execution"). Separately, v1.1.4 fixed headless mode
+  honoring persisted permissions, file-access, sandbox, auto-execution, and
+  artifact-review policies. Shell containment begins at v1.0.6; safe
+  cross-vendor dispatch requires **agy ≥ 1.1.4** because it also depends on
+  persisted file-write refusal. `[MEDIUM]`
+  ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.6,
+  [release v1.1.4](https://github.com/google-antigravity/antigravity-cli/releases/tag/1.1.4))
 - **Permission auto-approve:** `--dangerously-skip-permissions`
   bypasses all tool-permission prompts (DANGER — opposite of
   read-only review). Avoid in cross-vendor review use. `[STABLE]`
@@ -345,16 +385,27 @@ page in depth.
   shared user settings / CLI settings.json — merged, v1.0.5). A
   fourth mode, `proceed-in-sandbox` (v1.0.1), auto-approves commands
   that run inside the sandbox and prompts only when a command
-  attempts to bypass it. These are **TUI slash commands** — not CLI
-  flags — so they don't directly apply to `--print` mode. `[STABLE]`
+  attempts to bypass it. These are persisted settings, not one-shot flags;
+  v1.1.4 is the first release confirmed to honor them in `--print` mode.
+  Because this behavior changed materially across minor releases, this claim
+  is `[MEDIUM]`, not stable.
   ([antigravity.google/docs/cli-reference](https://antigravity.google/docs/cli-reference),
   [CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.1/v1.0.5)
+- **Execution mode:** `--mode plan` is a v1.1.4 launch flag that keeps the
+  reviewer in research/plan behavior. The dispatcher combines it with strict
+  persisted permissions and `--sandbox`; plan mode is defense in depth, not a
+  replacement for the refusal policy. `[MEDIUM]` (`agy --help` v1.1.4,
+  bundled `antigravity_guide` settings reference)
 - **Output format:** plain text only. NO `--output-format json` or
   Codex-style `--json` flag is documented or visible via `agy --help`.
   The `--print` output is the agent's free-form response. `[MEDIUM]`
-  (`agy --help` output 2026-05-28)
-- **Exit codes:** TBD on next walk. Not surfaced in the snapshots
-  captured. `[MEDIUM]`
+  (`agy --help` output 2026-07-18)
+- **Headless failure and exit behavior:** v1.1.1 changed server-side print-mode
+  failures from empty successful output to stderr plus non-zero exit, and
+  stopped `agy -p` from hanging in scripts when the prompt is supplied by a
+  flag. v1.1.2 added controlling-terminal OAuth-code input for piped prompts
+  and fail-fast behavior for truly headless authentication. `[MEDIUM]`
+  ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.1.1/v1.1.2)
 - **Misc operational facts (CHANGELOG-anchored):**
   `AGY_CLI_HIDE_ACCOUNT_INFO` env var hides email + plan tier from the
   header (v1.0.2); `AGY_CLI_DISABLE_LATEX` disables LaTeX terminal
@@ -365,26 +416,34 @@ page in depth.
 - **Cross-vendor review flag set** (consumed by `scripts/cross-vendor-review.sh` per [`cross-vendor-review.md`](../../protocols/cross-vendor-review.md)):
 
   ```
-  agy -p "<prompt>" --sandbox
+  agy -p "<prompt>" --mode plan --sandbox
   ```
 
-  Four caveats:
+  Five controls / caveats:
   (a) `--sandbox` enforces shell-command containment, NOT file-write
-  read-only — Antigravity has no documented one-shot CLI read-only
-  contract.
+  read-only. File-write refusal comes from the global CLI
+  `toolPermission: "strict"` setting, verified by the probe below.
   (b) Output is plain text, not JSON — parsing relies on
   string-matching the rubric's `### Anchored observations` /
   `### No-anchor observations` headers verbatim. Less robust than
   JSON.
-  (c) `--print` mode behavior with permission prompts in non-interactive
-  context is the live smoke-test question — does it block on prompts
-  (hang) or auto-reject (safe but useless)?
-  (d) **Version floor: agy ≥ 1.0.6** — `--sandbox` silently failed to
-  propagate in `-p` mode before v1.0.6 (CHANGELOG). The script's
-  antigravity case should gate on `agy --version` before trusting the
-  sandbox (follow-up queued, not yet implemented).
+  (c) v1.1.4 headless mode auto-denies a write tool that requires interactive
+  confirmation under `strict`; it does not hang.
+  (d) **Dispatch floor: agy ≥ 1.1.4.** The dispatcher also verifies the global
+  strict+sandbox policy, project hardening policy, and this file's passed
+  probe marker before invoking Antigravity. There is no safety override.
+  (e) The dispatcher embeds review targets up to 100,000 bytes directly in the
+  prompt and forbids tool use. This avoids granting headless `read_file` access;
+  a permission-denial response fails closed with exit 4.
 
-  Smoke test pending — see §10 for the open question. `[MEDIUM]`
+  **Probe result (2026-07-18, agy v1.1.4): PASSED after one falsifying first
+  attempt.** With only scratch-repo `.gemini/settings.json`, Antigravity did
+  not resolve an active workspace and created the sentinel in its default user
+  scratch directory; that exact sentinel was removed and dispatch remained
+  disabled. After persisting `toolPermission=strict` and
+  `enableTerminalSandbox=true` in the global CLI settings, the same headless
+  write request returned an explicit auto-denial and created no sentinel in
+  either location. `[MEDIUM]`
 
 ---
 
@@ -395,7 +454,9 @@ page in depth.
   `enableTerminalSandbox` via settings.json, but NO `--read-only` flag
   for `agy --print`. Cross-vendor review use requires settings.json
   configuration + verification that `--print` mode honors the
-  persistent permission preset. `[STABLE]`
+  persistent permission preset. The 2026-07-18 v1.1.4 probe verified that
+  composition, but because it depends on mutable settings and minor-version
+  behavior the claim is `[MEDIUM]`.
 - **No JSON output format documented.** All output is plain text from
   `--print` mode. Parsing the rubric's `### Anchored observations` /
   `### No-anchor observations` shape relies on the agent emitting it
@@ -403,11 +464,12 @@ page in depth.
   structured output mode. Mitigation: aggressive prompt-shaping in the
   rubric (see [`plan-review.md`](../../protocols/plan-review.md) for
   one example). `[MEDIUM]`
-- **Settings.json applicability.** The settings file lives at
-  `~/.gemini/antigravity-cli/settings.json`. Whether this repo's
-  project-level `.gemini/settings.json` (with
-  `context.fileName: ["AGENTS.md"]`) automatically applies to
-  Antigravity needs verification at smoke-test time. `[MEDIUM]`
+- **Settings.json applicability.** The load-bearing headless policy file is
+  `~/.gemini/antigravity-cli/settings.json`. A scratch-repo-only
+  `.gemini/settings.json` did not apply when Antigravity failed to resolve an
+  active workspace, so the dispatcher checks the global file directly and
+  treats repo-local policy as defense in depth. Native `AGENTS.md` lookup
+  remains a separate unverified question. `[MEDIUM]`
 - **No agy CLI versioning of the docs.** The Antigravity docs at
   `antigravity.google/docs/*` don't surface CLI-version-tagged
   history. Behavior may shift between releases without notice. Treat
@@ -418,17 +480,16 @@ page in depth.
   (markdown, AGENTS.md, protocols, scripts) is portable; the loss is
   the Google-side cross-vendor reviewer surface — Claude + Codex would
   have to carry the load. `[STABLE]`
-- **Live smoke-test pending.** The cross-vendor review integration
-  question — whether `agy --print --sandbox` produces parseable,
-  effectively-read-only output for a rubric-shaped review — needs
-  empirical verification in your project before relying on
-  Antigravity as the peer reviewer. Run a single small-rubric pass
-  against a throwaway target and inspect for unexpected disk writes.
-  Must be run on **agy ≥ 1.0.6** (see §9 sandbox version floor). The
-  smoke test doubles as the re-trigger for the remaining
-  low-confidence TBDs in §1 / §3 / §4 ("next agy install or first
-  Antigravity-as-reviewer run"). §2 (skills) was confirmed against
-  official docs on the 2026-06-20 walk and is no longer pending.
+- **Write-refusal smoke test and first live review completed.** The destructive
+  edge was tested directly on v1.1.4 and refused under the persisted strict
+  policy. During the 2026-07-18 Tier 1 review, headless strict mode loaded both
+  wildcard and exact-path `read_file` allow rules but still denied `ReadFile`.
+  The temporary grants were removed, and the dispatcher now embeds the exact
+  target so the reviewer needs no filesystem tools. The live rubric pass then
+  returned the required anchored / external-claim / no-anchor sections without
+  invoking tools. Plain-text parsing remains observationally weaker than
+  Codex's structured output. Re-probe whenever the minimum version, permission
+  schema, or inline transport changes. `[MEDIUM]`
 
 ## See also
 

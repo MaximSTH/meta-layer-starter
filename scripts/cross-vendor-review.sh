@@ -126,31 +126,76 @@ case "$TO" in
   antigravity)
     # Antigravity CLI (agy) — Google's first-party coding CLI.
     #
-    # Sandbox version floor: agy --sandbox silently failed to propagate
-    # in -p mode before v1.0.6 (CHANGELOG fix). Pre-1.0.6 review runs
-    # against an arbitrary install would execute without shell-command
-    # containment despite the flag. Refuse if version cannot be
-    # verified as ≥ 1.0.6 (extraction failure, agy missing, or version
-    # < 1.0.6). Override with SKIP_AGY_VERSION_CHECK=1 if the caller
-    # explicitly accepts the risk.
+    # Safety chain: v1.1.4 is the first release whose headless mode honors
+    # persisted permissions, file-access, sandbox, auto-execution, and
+    # artifact-review policies. Dispatch is allowed only when the binary
+    # floor, project policy, and recorded headless write-refusal probe all
+    # pass. There is deliberately no override for this security boundary.
     # See markdowns/agents/vendor-knowledge/antigravity-cli.md §9.
-    if [ "${SKIP_AGY_VERSION_CHECK:-0}" != "1" ]; then
-      AGY_VERSION=$(agy --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-      if [ -z "$AGY_VERSION" ] || [ "$(printf '%s\n%s\n' "1.0.6" "$AGY_VERSION" | sort -V | head -1)" != "1.0.6" ]; then
-        echo "Error: agy version '${AGY_VERSION:-unknown}' is below the sandbox-propagation floor (v1.0.6)." >&2
-        echo "Pre-1.0.6 --sandbox silently does not enforce shell-command containment in -p mode." >&2
-        echo "Upgrade agy, or override with SKIP_AGY_VERSION_CHECK=1 if you accept the risk." >&2
-        exit 4
-      fi
+    AGY_MIN_VERSION="1.1.4"
+    AGY_VERSION=$(agy --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    if [ -z "${HOME:-}" ]; then
+      echo "Error: Antigravity review dispatch is disabled: HOME is unset, so the persisted CLI policy cannot be verified." >&2
+      exit 4
     fi
-    # No --read-only flag; --sandbox restricts shell-exec only (NOT file
-    # writes). Read-only enforcement relies on the rubric's prompt
-    # instruction ("Do NOT execute, write, or modify files. Read only.")
-    # plus ~/.gemini/antigravity-cli/settings.json with enableTerminalSandbox=true.
-    # Output is plain text (no --output-format json); parsing relies on
+    AGY_USER_SETTINGS="${HOME}/.gemini/antigravity-cli/settings.json"
+    AGY_PROJECT_SETTINGS=".gemini/settings.json"
+    AGY_KNOWLEDGE="markdowns/agents/vendor-knowledge/antigravity-cli.md"
+
+    if [ -z "$AGY_VERSION" ] || [ "$(printf '%s\n%s\n' "$AGY_MIN_VERSION" "$AGY_VERSION" | sort -V | head -1)" != "$AGY_MIN_VERSION" ]; then
+      echo "Error: Antigravity review dispatch is disabled: agy '${AGY_VERSION:-unknown}' is below the headless-policy floor (v$AGY_MIN_VERSION)." >&2
+      echo "Required chain: upgrade agy, configure strict persisted policy, pass the headless write-refusal probe, and record the probe result." >&2
+      exit 4
+    fi
+
+    if [ ! -r "$AGY_USER_SETTINGS" ] ||
+       ! grep -Eq '"toolPermission"[[:space:]]*:[[:space:]]*"strict"' "$AGY_USER_SETTINGS" ||
+       ! grep -Eq '"enableTerminalSandbox"[[:space:]]*:[[:space:]]*true' "$AGY_USER_SETTINGS"; then
+      echo "Error: Antigravity review dispatch is disabled: $AGY_USER_SETTINGS does not contain the required global CLI policy." >&2
+      echo "Required: toolPermission=strict and enableTerminalSandbox=true." >&2
+      exit 4
+    fi
+
+    if [ ! -r "$AGY_PROJECT_SETTINGS" ] ||
+       ! grep -Eq '"allowNonWorkspaceAccess"[[:space:]]*:[[:space:]]*false' "$AGY_PROJECT_SETTINGS" ||
+       ! grep -Eq '"artifactReviewPolicy"[[:space:]]*:[[:space:]]*"asks-for-review"' "$AGY_PROJECT_SETTINGS"; then
+      echo "Error: Antigravity review dispatch is disabled: $AGY_PROJECT_SETTINGS does not contain the required project hardening policy." >&2
+      echo "Required: allowNonWorkspaceAccess=false and artifactReviewPolicy=asks-for-review." >&2
+      exit 4
+    fi
+
+    if [ ! -r "$AGY_KNOWLEDGE" ] ||
+       ! grep -Eq '^headless-write-probe:[[:space:]]*passed$' "$AGY_KNOWLEDGE"; then
+      echo "Error: Antigravity review dispatch is disabled: no passed headless write-refusal probe is recorded in $AGY_KNOWLEDGE." >&2
+      echo "Run the scratch-repo probe on agy >= $AGY_MIN_VERSION and record headless-write-probe: passed before dispatch." >&2
+      exit 4
+    fi
+    # No --read-only flag: effective read-only review depends on the checked
+    # restrictive policy plus the refusal probe, not on prompt text alone.
+    # The exact target is also transported inline so strict mode needs no read
+    # grant. Output is plain text (no --output-format json); parsing relies on
     # the rubric's anchored/no-anchor section headers.
     # See markdowns/agents/vendor-knowledge/antigravity-cli.md.
-    OUT=$(agy --print "$PROMPT" --sandbox --print-timeout 5m 2>&1) || RC=$?
+    [ -f "$TARGET" ] || {
+      echo "Error: Antigravity strict-mode review requires --target to be a readable file." >&2
+      exit 4
+    }
+    TARGET_BYTES=$(wc -c < "$TARGET" | tr -d ' ')
+    [ "$TARGET_BYTES" -le 100000 ] || {
+      echo "Error: Antigravity strict-mode inline target exceeds 100000 bytes: $TARGET_BYTES." >&2
+      exit 4
+    }
+    AGY_TARGET_BODY=$(cat "$TARGET")
+    AGY_PROMPT="$PROMPT
+
+Antigravity strict-mode review contract: the exact target content is embedded
+below. Do not call tools, list directories, search the workspace, execute
+commands, or inspect any path. Review only the embedded artifact.
+
+--- BEGIN EXACT REVIEW TARGET ---
+$AGY_TARGET_BODY
+--- END EXACT REVIEW TARGET ---"
+    OUT=$(agy --print "$AGY_PROMPT" --mode plan --sandbox --print-timeout 5m 2>&1) || RC=$?
     ;;
 esac
 
@@ -159,6 +204,13 @@ esac
 if [ "$RC" -ne 0 ] && printf '%s' "$OUT" | grep -qiE 'rate.?limit|quota|429|too many requests|usage limit'; then
   echo "Rate limit hit on $TO. Re-run with --to <other-vendor>." >&2
   exit 3
+fi
+
+if [ "$TO" = "antigravity" ] &&
+   printf '%s' "$OUT" | grep -qiE 'no output produced.*permission.*(denied|required)|tool required.*permission'; then
+  echo "Error: Antigravity review dispatch failed closed because strict mode denied a tool request." >&2
+  echo "The inline review contract requires a tool-free response; no review was accepted." >&2
+  exit 4
 fi
 
 printf '%s\n' "$OUT"
