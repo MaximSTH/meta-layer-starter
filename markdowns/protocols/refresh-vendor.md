@@ -76,6 +76,39 @@ claim `low-confidence` — do **not** upgrade it to verified on the
 strength of a page-fetch. "The docs URL resolves" is evidence the docs
 site is reachable, nothing more.
 
+## Model-related drift extends the sweep across refresh cadences
+
+Vendor knowledge files and
+[`model-capabilities.md`](../agents/model-capabilities.md) carry
+independent `last-verified` dates and independent refresh cadences.
+That independence is a trap for model claims: a vendor-CLI walk can
+surface a model change — a new tier, a renamed or retired model, a
+pricing move, a default-model shift — while the file that actually
+documents that vendor's models sits weeks from its own next walk. The
+drift lands in one file and silently rots in the other.
+
+**The rule:** when any vendor walk detects **model-related drift**, the
+post-edit consistency sweep ([`doc-consistency.md`](doc-consistency.md))
+extends to **every** knowledge file that references that vendor's
+models — regardless of each file's own cadence or `last-verified`
+date. The model touchpoint is applied in the same session, or at
+minimum flagged there with a dated pending marker; it is never deferred
+to the referenced file's next scheduled walk.
+
+**The error that earned this rule (2026-07-18):** the `claude-code`
+walk had Fable 5 sitting in its own captured `claude --help` output
+(`--model` listed `fable` / `claude-fable-5`) and walked past it — the
+miss only surfaced when the supervisor asked directly. Worse, the entry
+that *did* exist in
+[`model-capabilities.md`](../agents/model-capabilities.md) conflated
+Fable 5 (a distinct top-tier model) with `/fast` (an Opus output-speed
+toggle) and had been wrong since before the walk, because nothing tied
+a Claude-Code capability change to the separate file that owns model
+claims. Under this rule, the Fable alias in `--help` forces the
+`model-capabilities.md` touchpoint in the same walk. (Same convention
+as the executable-claims trap above: the rule records the error that
+motivated it.)
+
 ## The walk
 
 1. **Read the current file.** Note the `last-verified` date and the
