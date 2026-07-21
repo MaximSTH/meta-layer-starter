@@ -16,12 +16,20 @@ own that process, not rent it from one vendor. If an agent saying
 > months of internal use on a real production codebase, but external
 > feedback hasn't shaped them yet. File issues, expect it to change.
 
+**Recent — 2026-07-18 vendor refresh walks.** Antigravity v1.1.4 headless
+mode did **not** honor `read_file` permission grants under strict policy, so
+the cross-vendor dispatcher now embeds the review target inline (no read
+grant needed) and **fails closed** on any permission denial. Also landed: a
+model-drift consistency-sweep rule in `/refresh-vendor`, and a required
+pre-push gitleaks secret gate. Details in
+[`refresh-log.md`](markdowns/agents/refresh-log.md).
+
 ## What this template gives you
 
 <!-- quotes: markdowns/protocols/README.md#the-protocols-shipped-with-this-starter, markdowns/agents/skills-index.md -->
 | Layer | What's in here | What you'll add |
 |---|---|---|
-| **Meta layer** | 18 **protocols** (pre-ship gates, cross-vendor review, supervision, build/refactor flows, evidence + iteration + failure-attribution discipline, markdown lifecycle, doc consistency, etc.) + vendor knowledge files for Claude Code / Codex CLI / Antigravity CLI | Brand guide, personas, copywriting register, product plans |
+| **Meta layer** | 18 **protocols** (pre-ship gates, cross-vendor review with fail-closed peer dispatch, supervision incl. the pre-push secret gate, vendor refresh incl. the model-drift consistency sweep, build/refactor flows, evidence + iteration + failure-attribution discipline, markdown lifecycle, doc consistency, etc.) + vendor knowledge files for Claude Code / Codex CLI / Antigravity CLI | Brand guide, personas, copywriting register, product plans |
 | **Harness** | 4 meta-skills (`/build-feature`, `/refactor-extract`, `/refresh-vendor`, `/doc-consistency`) + Claude Code hooks (secret-file deny + write-guard) + sync scripts (AGENTS.md → CLAUDE.md, `.agents/skills/` → `.claude/skills/`) + a pre-commit stub | Project-specific drift checks, lint config, file-size hooks |
 | **Surfaces** | Empty (this is a template) | Your product code |
 | **Model** | (vendor-owned, nothing to add) | n/a |
@@ -37,7 +45,7 @@ The template works in two modes:
 
 Install pointers per CLI:
 - **Claude Code**: [`code.claude.com`](https://code.claude.com)
-- **Codex CLI**: `npm install -g @openai/codex` ([docs](https://developers.openai.com/codex/cli))
+- **Codex CLI**: `npm install -g @openai/codex` ([docs](https://learn.chatgpt.com/docs/codex/cli))
 - **Antigravity CLI**: `curl -fsSL https://antigravity.google/cli/install.sh | bash`
 
 Optional tooling some scripts use:
