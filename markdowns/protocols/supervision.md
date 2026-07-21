@@ -71,6 +71,34 @@ Tier 1 / Tier 2 PR:
 ship`). Mild assent (`ok`, `sure`) does not count; if unsure, ask
 once.
 
+## Pre-push secret gate (required)
+
+No branch is ever pushed — and no PR opened — without a clean
+**full-history** secret scan. This is a hard gate, not advisory: the
+push does not happen until the scan is clean and the result is logged.
+
+Before the first `git push` of any branch:
+
+1. **Scan the whole history** (not just the working tree):
+   `gitleaks git --no-banner .` (gitleaks 8.19+; older builds:
+   `gitleaks detect --source . --no-banner`). History matters because a
+   secret committed and later deleted still lives in the objects a push
+   uploads.
+2. The scan must exit clean (no findings). A finding **blocks the
+   push**: remove the secret, rewrite the history that carried it (the
+   branches are local until pushed — rewriting is safe), **rotate the
+   exposed credential**, then re-scan.
+3. **Log the clean result the same turn**, surfaced in chat per the
+   log-surfacing rule:
+   `[LOG] gitleaks: clean (full history) — <branch> @ <short-sha>`.
+   Record it in the ledger that accompanies the shipped change.
+
+This complements the `.gitignore` secret patterns, which stop secrets
+from being *staged* in the first place; the scan catches anything that
+slipped past them, including in historical commits. Keep both in sync:
+when a new secret-bearing filename convention appears, add it to
+`.gitignore` **and** rely on the scan as the backstop.
+
 ## Decision-moment notation
 
 Inline tags when narrating a multi-step flow in chat:
