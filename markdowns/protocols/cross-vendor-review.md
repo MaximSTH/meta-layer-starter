@@ -28,7 +28,7 @@ rationalized past.
    and returns its observations. Catches blind-spot friction the
    worker rationalized past. The cross-vendor reviewer runs
    **read-only** (no command execution — see the dispatcher's
-   `--allowedTools` / `--sandbox` wiring), so it *flags* external
+   vendor-specific permission wiring), so it *flags* external
    claims for the worker to verify in the next round rather than
    running commands itself.
 
@@ -82,8 +82,10 @@ the world:
 
 **Who runs the command — and who only flags.** The cross-vendor
 reviewer runs read-only (the dispatcher invokes `claude` with
-`--allowedTools "Read,Grep,Glob"` and `codex` with `--sandbox
-read-only` — no Bash, no network). It therefore **cannot** run these
+`--allowedTools "Read,Grep,Glob"`, `codex` with `--sandbox read-only`,
+and Antigravity only after its v1.1.4 strict-policy refusal probe and
+preflight pass, with the exact target embedded so no filesystem read grant is
+needed). It therefore **cannot** run these
 commands, and must not be told to. Its job is to **spot** every
 externally-falsifiable claim in the diff and list them for
 verification. The **execution** happens at a layer that has

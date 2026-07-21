@@ -142,12 +142,11 @@ vendor's hook surface. That's a known cost. Don't pretend otherwise.
 
 The cross-vendor review dispatcher invokes peer vendors via **shell
 invocation** (`codex exec`, `agy --print`) rather than connecting to
-them as **MCP servers** (`codex mcp-server`, the eventual
-`agy mcp-server`). Both peer vendors now ship first-party MCP
-server-mode (verified 2026-06-10 against Codex 0.139.0; Antigravity
-status per its vendor knowledge file). The architectural trigger
-for revisiting this choice has therefore fired — and we have
-explicitly chosen to stay on shell invocation.
+them as **MCP servers**. Codex ships `codex mcp-server` (verified
+2026-06-10 against Codex 0.139.0); Antigravity v1.1.4 still has no
+first-party server mode. The architectural trigger (any peer vendor
+ships a server mode) fired via Codex, and we explicitly chose to stay
+on shell invocation.
 
 **Why shell stays the default:**
 
@@ -155,10 +154,13 @@ explicitly chosen to stay on shell invocation.
   installs the peer CLI. MCP server-mode requires the peer's MCP
   server to be running, configured, and reachable. For a template,
   the lower-friction path wins.
-- **Sandbox posture.** The shell pattern with `--sandbox` (and the
-  `agy ≥ 1.0.6` version gate in
-  [`scripts/cross-vendor-review.sh`](../../scripts/cross-vendor-review.sh))
-  provides tight, auditable shell-exec containment. MCP server-mode
+- **Sandbox posture.** The shell pattern uses Codex's native read-only
+  sandbox. Antigravity dispatch requires `agy ≥ 1.1.4`, persisted strict
+  permissions, terminal sandboxing, project hardening, and a recorded
+  headless write-refusal probe. Its review target is embedded in the prompt so
+  strict headless mode requires no filesystem read grant. These checks live in
+  [`scripts/cross-vendor-review.sh`](../../scripts/cross-vendor-review.sh)
+  before it is allowed to run. MCP server-mode
   opens richer filesystem access for the reviewer — better reviews,
   weaker isolation. The substrate's Tier 1/2 supervision discipline
   pairs better with the tighter posture.

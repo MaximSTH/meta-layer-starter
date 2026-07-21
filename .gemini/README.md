@@ -8,10 +8,14 @@ an active vendor in this template.
 
 ## What's here and why
 
-- **`settings.json`** — sets `context.fileName: ["AGENTS.md"]`. Tells
-  Antigravity's instruction-file lookup to read `AGENTS.md` instead
-  of searching for a vendor-named instruction file. Without this
-  override Antigravity would not find the canonical instructions.
+- **`settings.json`** — sets `context.fileName: ["AGENTS.md"]` and the
+  repository's Antigravity review hardening defaults: non-workspace access
+  disabled, terminal sandbox enabled, strict tool permission, and artifact
+  review required. The global CLI settings file at
+  `~/.gemini/antigravity-cli/settings.json` remains the load-bearing policy
+  channel for headless mode; the dispatcher verifies both layers before an
+  Antigravity review and embeds the exact review target so no read grant is
+  required.
 
 ## Why not rename to `.antigravity/`?
 
