@@ -119,7 +119,7 @@ convention is documented for forward use.
 |---|---|
 | `.agents/skills/` | Canonical skill source AND the open-standard surface Codex + Antigravity read directly. Not Claude-specific. |
 | `.claude/skills/` | Claude's adapter — auto-generated mirror of `.agents/skills/`, because Claude Code looks in `.claude/skills/` rather than `.agents/skills/`. |
-| `.claude/hooks/` | Hooks are Claude-Code-specific (28 events vs Codex's 10, different semantics). No portable abstraction. Native to Claude only. |
+| `.claude/hooks/` | Hooks are Claude-Code-specific (30 events vs Codex's 10, different semantics). No portable abstraction. Native to Claude only. |
 | `.gemini/settings.json` | Antigravity's `context.fileName: ["AGENTS.md"]` override. The path is `.gemini/` because Antigravity's config root inherits from `~/.gemini/`; this is Antigravity's config file, not Gemini's. |
 | `.codex/` | **Does not exist** — Codex reads both `AGENTS.md` and `.agents/skills/` natively with no override needed. The absence is intentional, not a gap. (A per-skill `agents/openai.yaml` overlay, if ever needed, lives inside `.agents/skills/<name>/`, not here.) |
 | `.antigravity/` | **Does not exist** — Antigravity reads `AGENTS.md` via `.gemini/settings.json` and skills from `.agents/skills/` directly. No project-level skills dir of its own is needed. |
