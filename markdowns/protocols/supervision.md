@@ -99,8 +99,11 @@ slipped past them, including in historical commits. Keep both in sync:
 when a new secret-bearing filename convention appears, add it to
 `.gitignore` **and** rely on the scan as the backstop. CI re-runs the
 same scan on every PR and push to main (the `secret-scan` job in
-`check.yml`), so the gate holds even when a local run is skipped —
-CI is authoritative, matching the sync gates.
+`check.yml`) as the merge-time backstop — nothing reaches main
+unscanned. It does not replace the local pre-push scan: a secret
+pushed to a feature branch has already left the machine before CI
+fires, so a CI-caught finding still walks step 2 in full, including
+rotating the exposed credential.
 
 ## Decision-moment notation
 
