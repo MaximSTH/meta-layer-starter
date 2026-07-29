@@ -1,0 +1,92 @@
+# Brief — `interaction-performance-backport`
+
+## What's the work
+
+Backport, from the starter's flagship consumer (Loomvous), the pattern
+of its interaction-performance work: a new copy-and-fill template that
+gives FCPSS's "P" a measurable bar (interaction classes with budget
+slots, optimistic-by-default with revert-and-tell, refetch discipline
+with query-ceiling slots, long-job honesty, dev-vs-deployed evaluation,
+an honest enforcement map, and a remediation-ledger convention), plus
+the gate rewiring so "P" delegates to the project's filled standard.
+Pattern only — none of Loomvous's concrete numbers, stack specifics,
+or ledger entries appear.
+
+## Tier
+
+Tier 2. Edits a load-bearing protocol file (`fcpss-gate.md`) that every
+future PR walks, and adds a canonical skeleton; no code, no runtime
+surface. Not Tier 1: no destructive change, no security surface, the
+gate's structure (5 dimensions, binary coverage) is untouched.
+
+## Scope — what's in
+
+- NEW `markdowns/engineering/interaction-performance-template.md`
+  (`status: template`) — section structure ported from Loomvous's
+  shipped standard, all budgets/ceilings as placeholder slots.
+- `markdowns/protocols/fcpss-gate.md` — "P" row amended: for UI work,
+  covered only when the project's interaction-performance standard's
+  budgets pass or a recorded `[SUPERVISOR]` exception exists; no
+  standard yet → authoring it is the prerequisite.
+- `AGENTS.md` Doc Map — new template added to the surface-skeletons
+  row (CLAUDE.md mirror regenerates via pre-commit hook).
+- `markdowns/briefs/_template.md` — P bullet gains the same delegation
+  clause (sole quoter of the old P row found by the consistency sweep).
+- `README.md` — "interaction-performance standard" added to the
+  Meta-layer row's "What you'll add" enumeration.
+
+## Scope — what's deliberately out
+
+- Loomvous's budget numbers, query ceilings, Next.js/Vercel dev-mode
+  specifics, house-pattern file references, and its §7 ledger entries —
+  excluded by the binding portability rule (pattern, not law).
+- Any change to the other FCPSS rows, the work-shape table, or the
+  gate's binary-coverage rule.
+- A new protocol file — the template is a skeleton (`status:
+  template`), so `markdowns/protocols/README.md` and the "18
+  protocols" count are intentionally unchanged.
+- Pre-filled default budgets in the slots — each project derives its
+  own numbers per the template's "where your numbers come from" slot
+  (supervisor confirmed slots stay empty).
+
+## FCPSS coverage
+
+- **F (Functional):** No runtime behavior — this is meta-layer.
+  Process-visible change: every future Tier 1/2 UI PR's "P" bullet must
+  now cite class/budget/counts from a project standard or carry a
+  `[SUPERVISOR]` exception; projects bootstrapping from the starter
+  inherit the template.
+- **C (Cross-cutting):** Touches the canonical `AGENTS.md` (mirror
+  auto-syncs to `CLAUDE.md` via pre-commit hook — not hand-edited);
+  `fcpss-gate.md` is cited by supervision, build-feature,
+  refactor-extract, and the briefs template — the sole P-row quoter
+  (`briefs/_template.md`) is updated in the same PR.
+- **P (Performance):** N/A for runtime (docs only). Token-footprint:
+  the template is a new ~190-line file read on demand, not loaded into
+  every session's context; the P-row edit adds ~3 lines to a file
+  skills already load.
+- **S (Security):** N/A — no code, no secrets, no auth surface. New
+  file passes the pre-push gitleaks gate like any commit.
+- **S (Stability):** Doc-consistency risk is the failure mode: quoters
+  of the P row drift. Mitigated by the sweep (one quoter found,
+  updated here) and by the template declaring that all numbers live in
+  the filled copy only.
+
+## Anchors for the cross-vendor review
+
+- `markdowns/protocols/fcpss-gate.md:19` — the amended P row; check it
+  delegates without changing the gate's binary-coverage semantics.
+- `markdowns/engineering/interaction-performance-template.md` — check
+  no Loomvous-specific number, stack detail, or ledger entry leaked in
+  (the portability rule is binding); check every budget is a slot.
+- `markdowns/protocols/markdown-lifecycle.md:37` — template status
+  conventions the new file must follow.
+- `AGENTS.md` Doc Map surface-skeletons row; `README.md:32`;
+  `markdowns/briefs/_template.md:43` — the three index/quoter edits.
+
+## Open questions
+
+- None blocking. `gh repo edit --template=true` (the missing GitHub
+  "Use this template" button) was denied by the local permission
+  classifier — supervisor runs it directly or flips Settings → General
+  → "Template repository"; independent of this PR.
