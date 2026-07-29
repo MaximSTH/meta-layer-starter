@@ -29,7 +29,7 @@ pre-push gitleaks secret gate. Details in
 <!-- quotes: markdowns/protocols/README.md#the-protocols-shipped-with-this-starter, markdowns/agents/skills-index.md -->
 | Layer | What's in here | What you'll add |
 |---|---|---|
-| **Meta layer** | 18 **protocols** (pre-ship gates, cross-vendor review with fail-closed peer dispatch, supervision incl. the pre-push secret gate, vendor refresh incl. the model-drift consistency sweep, build/refactor flows, evidence + iteration + failure-attribution discipline, markdown lifecycle, doc consistency, etc.) + vendor knowledge files for Claude Code / Codex CLI / Antigravity CLI | Brand guide, personas, copywriting register, product plans |
+| **Meta layer** | 18 **protocols** (pre-ship gates, cross-vendor review with fail-closed peer dispatch, supervision incl. the pre-push secret gate, vendor refresh incl. the model-drift consistency sweep, build/refactor flows, evidence + iteration + failure-attribution discipline, markdown lifecycle, doc consistency, etc.) + vendor knowledge files for Claude Code / Codex CLI / Antigravity CLI | Brand guide, personas, copywriting register, interaction-performance standard, product plans |
 | **Harness** | 4 meta-skills (`/build-feature`, `/refactor-extract`, `/refresh-vendor`, `/doc-consistency`) + Claude Code hooks (secret-file deny + write-guard) + sync scripts (AGENTS.md → CLAUDE.md, `.agents/skills/` → `.claude/skills/`) + a pre-commit stub | Project-specific drift checks, lint config, file-size hooks |
 | **Surfaces** | Empty (this is a template) | Your product code |
 | **Model** | (vendor-owned, nothing to add) | n/a |

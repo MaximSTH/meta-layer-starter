@@ -40,7 +40,7 @@ is dangerous.)
 
 - **F (Functional):** What user-visible / system-visible behavior changes?
 - **C (Cross-cutting):** What shared canonical files / SSOTs / other surfaces does this touch?
-- **P (Performance):** Round-trip count, latency budget, cost envelope.
+- **P (Performance):** Round-trip count, latency budget, cost envelope. For UI work: interaction class, budget, and query counts per the project's interaction-performance standard — or the recorded `[SUPERVISOR]` exception.
 - **S (Security):** Auth boundary, RLS / input sanitization, secret surface.
 - **S (Stability):** Error boundaries, retry, partial-failure recovery, observability.
 

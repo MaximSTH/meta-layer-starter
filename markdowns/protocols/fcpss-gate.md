@@ -16,7 +16,7 @@ five questions. Coverage is **binary** — 5/5 ships; 4/5 doesn't.
 |---|---|---|
 | **F** | Functional | What user-visible or system-visible behavior changes after this ships? Concrete, named. |
 | **C** | Cross-cutting | What shared canonical files / pre-commit gates / other surfaces does this touch? Inherits from where, propagates to where? |
-| **P** | Performance | Round-trip count, latency budget, cost / footprint envelope. Does it regress measured performance? |
+| **P** | Performance | Round-trip count, latency budget, cost / footprint envelope. Does it regress measured performance? For UI work the measurable bar is the project's interaction-performance standard (authored from the [template](../engineering/interaction-performance-template.md)): P counts as covered only when every applicable budget passes, or the checkpoint carries a recorded `[SUPERVISOR]` exception — state the interaction class, budget, and query counts, not an adjective. A project without that standard yet treats authoring it as the prerequisite, not a waiver. |
 | **S** | Security | Auth boundary, row-level security, input sanitization, secret surface, threat-model deltas. |
 | **S** | Stability | Error boundaries, retry, offline behavior, partial-failure recovery, observability. |
 
