@@ -34,6 +34,11 @@ gate's structure (5 dimensions, binary coverage) is untouched.
   clause (sole quoter of the old P row found by the consistency sweep).
 - `README.md` — "interaction-performance standard" added to the
   Meta-layer row's "What you'll add" enumeration.
+- `markdowns/meta-layer/example-pr-walkthrough.md` — the synthetic
+  FCPSS P bullet updated to model the amended gate (states the
+  interaction class per the project standard). Added in self-review
+  round 1; the example would otherwise demonstrate a P bullet the new
+  row rejects.
 
 ## Scope — what's deliberately out
 
@@ -44,7 +49,10 @@ gate's structure (5 dimensions, binary coverage) is untouched.
   incident count) is deliberately IN scope per the supervisor's
   instruction — the preamble exists so readers know the template is a
   paid-for lesson; the exclusion rule covers budgets, ceilings, and
-  stack specifics, not the war story.
+  stack specifics, not the war story. The incident count is
+  supervisor-attested (stated in the backport instruction), not
+  independently re-verified against the source repo's PR history by
+  this session.
 - Any change to the other FCPSS rows, the work-shape table, or the
   gate's binary-coverage rule.
 - A new protocol file — the template is a skeleton (`status:
@@ -52,7 +60,11 @@ gate's structure (5 dimensions, binary coverage) is untouched.
   protocols" count are intentionally unchanged.
 - Pre-filled default budgets in the slots — each project derives its
   own numbers per the template's "where your numbers come from" slot
-  (supervisor confirmed slots stay empty).
+  (supervisor confirmed slots stay empty). Universal structural
+  invariants are exempt from the slot rule and remain literal: "zero
+  round trips" for filters over data the client already holds, and
+  coalesce-to-one reconciliation. These are the pattern itself, not
+  derived budgets — sloting them would gut the discipline.
 
 ## FCPSS coverage
 
@@ -67,11 +79,15 @@ gate's structure (5 dimensions, binary coverage) is untouched.
   refactor-extract, and the briefs template — the sole P-row quoter
   (`briefs/_template.md`) is updated in the same PR.
 - **P (Performance):** N/A for runtime (docs only). Token-footprint:
-  the template is a new 259-line file read on demand, not loaded into
+  the template is a new 261-line file read on demand, not loaded into
   every session's context; the P-row edit lengthens one table row in a
   file skills already load.
-- **S (Security):** N/A — no code, no secrets, no auth surface. New
-  file passes the pre-push gitleaks gate like any commit.
+- **S (Security):** N/A — no code, no secrets, no auth surface.
+  Verified by a direct `gitleaks git` full-history run this session
+  (26 commits, no leaks) — run manually because git hooks are NOT
+  installed in this clone (neither pre-commit sync nor pre-push
+  gitleaks; flagged to supervisor, mirror synced by hand via
+  `scripts/sync-agents-md.sh`).
 - **S (Stability):** Doc-consistency risk is the failure mode: quoters
   of the P row drift. Mitigated by the sweep (one quoter found,
   updated here) and by the template declaring that all numbers live in

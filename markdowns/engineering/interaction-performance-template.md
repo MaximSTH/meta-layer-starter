@@ -61,7 +61,7 @@ starter. If the gate row changes, this sentence moves with it.)
 | Class | Budget | How it is checked |
 |---|---|---|
 | **A. Small edit** | Screen reflects the intended end-state within `<N ms>` of the input event — in practice, before any network round trip (optimistic, §2). | Structural, not stopwatch: the code applies the state update before awaiting the server call; clicking shows the change land instantly. Pending affordances must not gate the visible change and disable at most the acted-on control. |
-| **B. Navigation / read** | A **visible** pending treatment within `<N ms>` (spinner, skeleton, label swap — an ARIA state accompanies, never substitutes). Filters over data the client already holds recompute client-side, zero round trips. Content arrival: `<N s>` to interactive content at current data scale. | Pending affordance: structural + observed. Content arrival: measured on a deployed build with the number recorded (§5), never eyeballed in dev. |
+| **B. Navigation / read** | A **visible** pending treatment within `<N ms>` (spinner, skeleton, label swap — an accessibility state, e.g. ARIA on the web, accompanies but never substitutes). Filters over data the client already holds recompute client-side, zero round trips. Content arrival: `<N s>` to interactive content at current data scale. | Pending affordance: structural + observed. Content arrival: measured on a deployed build with the number recorded (§5), never eyeballed in dev. |
 | **C. Long-running job** | A held-place state (the job visibly occupying its place in the UI) within `<N ms>` of the trigger — rendered before the server responds. Progress reflects real events only; terminal state always renders (§4). | Structural + observed: held-place renders before the round trip; progress wiring read from the code (real state, no simulated timers). |
 
 **Where your numbers come from** (fill this — it is what makes the
@@ -92,9 +92,11 @@ The rule for every Class A edit:
    back to server truth, and the user sees an error at the point of
    action. Both halves are required: reverting without telling = the
    user's edit silently evaporates; telling without reverting = **the
-   screen lies about what is saved**. Optimistic UI never silently
-   diverges from persistence — whatever the screen shows after failure
-   must be what the datastore holds.
+   screen lies about what is saved**. Optimistic UI never *silently*
+   diverges from persistence: after a clean rejection the screen shows
+   what the datastore holds; when the outcome is unknown, rule 4's
+   explicit could-not-confirm state is the only sanctioned alternative
+   to showing datastore truth.
 4. **On an unknown outcome, re-read — don't guess.** A transport
    failure (network drop, timeout) means the write may or may not have
    committed. Catch it, tell the user, and run a targeted
@@ -172,8 +174,8 @@ Class C jobs never fake progress and never go quiet:
 
 ## 5. The dev-vs-deployed evaluation split
 
-Dev mode's overhead (compilation, unoptimized bundles) dominates
-first-load wall-clock. Without this rule, perceived dev latency gets
+Dev mode's overhead (e.g. compilation, unoptimized assets — whatever
+your stack's dev environment adds) dominates first-load wall-clock. Without this rule, perceived dev latency gets
 misattributed to code — repeatedly.
 
 **A dev-stage review CAN prove** (and must check): class conformance
@@ -190,10 +192,10 @@ stage without first separating dev overhead.
 **Deployed measurement.** Wall-clock budgets are measured only on a
 deployed build under stated conditions (`<BROWSER / NETWORK / DATA
 SCALE>`). Record two numbers, pass or fail: the cold first visit
-(hard reload, cache disabled — includes the client bundle the route
+(hard reload, cache disabled — includes the client code the screen
 ships) and the warm second visit. The `<N s>` budget applies to the
-warm number; a cold number far above it signals a bundle problem —
-load the heavy import lazily and name any large added client
+warm number; a cold number far above it signals a payload problem —
+load the heavy dependency lazily and name any large added client
 dependency in the "P" bullet. Define when measurement happens:
 `<e.g. pre-merge on a preview deployment when a slice flags Class B
 budget risk; once per phase on the production URL, numbers recorded
