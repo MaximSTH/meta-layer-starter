@@ -79,10 +79,14 @@ FCPSS coverage:
 - Cross-cutting: Currency format reuses lib/intl/format-currency.ts;
   added a locale parameter (defaults to existing 'en-US' behavior so
   no caller breaks). Tests added for the new branch.
-- Performance: Single DB query (3 rows expected, parameterized by
-  status='active'). ISR with revalidate=3600 — plan pricing changes
-  infrequently. No client-side currency conversion (rendered server-
-  side, sent as formatted string).
+- Performance: Class B navigation/read per the project's
+  interaction-performance standard — server-rendered, pending
+  affordance and content-arrival budget within the standard's numbers.
+  Single DB query, one sequential stage (3 rows expected,
+  parameterized by status='active').
+  ISR with revalidate=3600 — plan pricing changes infrequently. No
+  client-side currency conversion (rendered server-side, sent as
+  formatted string).
 - Security: No auth on this page (public marketing). plans table
   already has SELECT-anon RLS; no policy change. No PII collected.
 - Stability: 1 unit test for the new currency-locale branch. 1
