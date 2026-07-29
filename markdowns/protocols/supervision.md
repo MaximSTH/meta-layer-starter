@@ -97,7 +97,15 @@ This complements the `.gitignore` secret patterns, which stop secrets
 from being *staged* in the first place; the scan catches anything that
 slipped past them, including in historical commits. Keep both in sync:
 when a new secret-bearing filename convention appears, add it to
-`.gitignore` **and** rely on the scan as the backstop.
+`.gitignore` **and** rely on the scan as the backstop. CI re-runs the
+same scan on every PR and push to main (the `secret-scan` job in
+`check.yml`) as the merge-time backstop: a finding fails the check
+that tier-gated merges are held to. (Blocking is as strong as the
+merge discipline — add branch protection requiring the check to make
+it GitHub-enforced.) It does not replace the local pre-push scan: a secret
+pushed to a feature branch has already left the machine before CI
+fires, so a CI-caught finding still walks step 2 in full, including
+rotating the exposed credential.
 
 ## Decision-moment notation
 
