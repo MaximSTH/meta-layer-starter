@@ -54,7 +54,9 @@ counts as covered only when every applicable budget passes, or the
 chat checkpoint carries an explicit supervisor-approved exception**
 (a `[SUPERVISOR]` decision per
 [supervision.md](../protocols/supervision.md)) — a written
-justification alone does not ship.
+justification alone does not ship. (This deliberately restates the
+gate's P row: a filled copy of this doc must stand alone outside the
+starter. If the gate row changes, this sentence moves with it.)
 
 | Class | Budget | How it is checked |
 |---|---|---|

@@ -39,7 +39,12 @@ gate's structure (5 dimensions, binary coverage) is untouched.
 
 - Loomvous's budget numbers, query ceilings, Next.js/Vercel dev-mode
   specifics, house-pattern file references, and its §7 ledger entries —
-  excluded by the binding portability rule (pattern, not law).
+  excluded by the binding portability rule (pattern, not law). The
+  anonymized origin story in the template's preamble (including its
+  incident count) is deliberately IN scope per the supervisor's
+  instruction — the preamble exists so readers know the template is a
+  paid-for lesson; the exclusion rule covers budgets, ceilings, and
+  stack specifics, not the war story.
 - Any change to the other FCPSS rows, the work-shape table, or the
   gate's binary-coverage rule.
 - A new protocol file — the template is a skeleton (`status:
@@ -62,9 +67,9 @@ gate's structure (5 dimensions, binary coverage) is untouched.
   refactor-extract, and the briefs template — the sole P-row quoter
   (`briefs/_template.md`) is updated in the same PR.
 - **P (Performance):** N/A for runtime (docs only). Token-footprint:
-  the template is a new ~190-line file read on demand, not loaded into
-  every session's context; the P-row edit adds ~3 lines to a file
-  skills already load.
+  the template is a new 259-line file read on demand, not loaded into
+  every session's context; the P-row edit lengthens one table row in a
+  file skills already load.
 - **S (Security):** N/A — no code, no secrets, no auth surface. New
   file passes the pre-push gitleaks gate like any commit.
 - **S (Stability):** Doc-consistency risk is the failure mode: quoters
