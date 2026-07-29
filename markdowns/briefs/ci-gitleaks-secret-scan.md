@@ -22,8 +22,9 @@ stake-matrix's uncertainty rule.
 - `.github/workflows/check.yml` — new `secret-scan` job: checkout with
   `fetch-depth: 0` (full history — the point of the gate), download
   pinned gitleaks v8.30.1 (matches the version verified locally this
-  session), run `gitleaks git --no-banner .` — the same command
-  supervision.md:83 specifies, for exact local/CI parity.
+  session), run the same subcommand and flags supervision.md:83
+  specifies (`gitleaks git --no-banner .`, invoked as `./gitleaks`
+  since the binary is extracted to the working directory).
 - `markdowns/protocols/supervision.md` — one sentence added to the
   "Pre-push secret gate" section noting CI re-runs the same scan, so
   the gate holds even when a local run is skipped.
@@ -32,7 +33,12 @@ stake-matrix's uncertainty rule.
 
 - The official `gitleaks/gitleaks-action` — needs a license key for
   org accounts and hides the command; the raw binary keeps CI running
-  the byte-identical command the protocol names.
+  the same subcommand and flags the protocol names.
+- Branch protection / rulesets on main (verified absent: API returns
+  404 / zero rulesets) — enabling them is a repo-settings decision for
+  the supervisor, recommended in the checkpoint; until then, blocking
+  is protocol discipline (merges held to CI green), which the amended
+  supervision.md sentence now states accurately.
 - A git pre-push hook — supervision.md deliberately specifies an
   agent-run scan with a logged result, not a hook; CI is the backstop
   layer, matching the existing mirror-sync design.
