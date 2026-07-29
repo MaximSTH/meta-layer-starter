@@ -79,7 +79,7 @@ gate's structure (5 dimensions, binary coverage) is untouched.
   refactor-extract, and the briefs template — the sole P-row quoter
   (`briefs/_template.md`) is updated in the same PR.
 - **P (Performance):** N/A for runtime (docs only). Token-footprint:
-  the template is a new 261-line file read on demand, not loaded into
+  the template is a new 266-line file read on demand, not loaded into
   every session's context; the P-row edit lengthens one table row in a
   file skills already load.
 - **S (Security):** N/A — no code, no secrets, no auth surface.

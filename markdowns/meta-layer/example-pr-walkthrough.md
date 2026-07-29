@@ -82,7 +82,8 @@ FCPSS coverage:
 - Performance: Class B navigation/read per the project's
   interaction-performance standard — server-rendered, pending
   affordance and content-arrival budget within the standard's numbers.
-  Single DB query (3 rows expected, parameterized by status='active').
+  Single DB query, one sequential stage (3 rows expected,
+  parameterized by status='active').
   ISR with revalidate=3600 — plan pricing changes infrequently. No
   client-side currency conversion (rendered server-side, sent as
   formatted string).

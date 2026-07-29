@@ -31,11 +31,16 @@ Terms: **optimistic update** = the screen shows the result of an edit
 immediately, before the server confirms, and reconciles behind;
 **refetch / revalidation** = re-running server queries to re-render a
 screen's data after a change; **round trip** = one awaited
-client-server or server-datastore request-response.
+client-server or server-datastore request-response (state which link
+a number counts: the §3 ceilings count the server↔datastore/auth
+link; count client↔server calls separately when a rule names them).
 
 ## 1. Interaction classes and feedback budgets
 
-Every user-triggered interaction belongs to exactly one class.
+Every user-triggered interaction that awaits a server or mutates
+persistent state belongs to exactly one class. Purely local UI
+actions (focus, selection, clipboard, a visual disclosure that
+fetches nothing) are out of scope — they must simply never block.
 Classify in order:
 
 1. Does the server work honestly take longer than `<LONG-JOB
@@ -211,7 +216,7 @@ optimistically defeats its purpose — the gap column is the point.
 |---|---|---|
 | `<e.g. reads are index-backed>` | `<mechanical: named CI test — covering exactly what it enumerates, no more>` | `<what would extend it, and the trigger that justifies building it>` |
 | Query ceilings (§3) | `<typically review-rubric: counted from source, stated in the "P" bullet>` | `<e.g. a query-counting test wrapper — worth it the first time a ceiling regression ships, not before>` |
-| Class A optimistic + revert-and-tell (§2) | `<typically review-rubric: reviewer exercises the interaction and forces both failure modes per §5>` | Not mechanically checkable in general — it is a behavior property. |
+| Class A optimistic + revert-and-tell (§2) | `<typically review-rubric: reviewer exercises the interaction and forces both failure modes per §5>` | Not statically checkable — it is a behavior property. A browser/integration test that delays or rejects the request and asserts pre-response render, rollback, and the error message is the mechanical path when a regression justifies building it. |
 | Feedback budgets (§1) | `<structural review for A/C; deployed measurement with recorded numbers for B>` | `<synthetic perf CI measures noise at small scale — revisit when there is traffic worth alerting on>` |
 | This standard reaches every UI slice | Wiring: FCPSS "P" points here; the UX pre-ship walk carries a performance item; worker kickoff prompts cite this doc. | — |
 
