@@ -1,7 +1,7 @@
 ---
 name: grok-admission-analysis
 description: Vendor-admission decision memo for xAI Grok Build — harness-fit criteria, verified findings, risk register, recommendation (DEFER with re-evaluation triggers). Supervisor decides.
-status: draft
+status: reference
 ---
 
 # Grok admission analysis (2026-08-25)
@@ -55,7 +55,12 @@ reviewer lineage (breaks any Claude↔Codex blind-spot correlation),
 cheap models (`grok-build-0.1` at $1/$2 per Mtok under 200k), and
 per-agent model pinning that fits the guardrail pattern directly.
 
-## Recommendation
+## Decision
+
+**DEFER accepted by supervisor ("ship it", 2026-08-25).** The
+re-evaluation triggers below are now the live re-open conditions.
+
+## Recommendation (as put to the supervisor)
 
 **DEFER — do not admit now, do not reject.** The paper fit is the best
 of any candidate vendor (criterion 1 alone removes a whole class of
