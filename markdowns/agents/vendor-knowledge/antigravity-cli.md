@@ -3,9 +3,14 @@ name: vendor-knowledge-antigravity-cli
 description: Volatility-tagged knowledge of Antigravity CLI — Google's coding CLI (`agy`). Canonical instructions file, skills, subagents, hooks, auth, rate limits, cost, MCP, headless invocation. Drives cross-vendor scripts and /refresh-vendor.
 status: reference
 last-verified: 2026-08-25
-headless-write-probe: passed
-headless-write-probe-verified-on: 1.1.4
-headless-write-probe-stale: true  # print-mode error semantics changed in 1.1.18/1.1.20; re-run before dispatch
+# ⚠️ Value deliberately NOT `passed`. cross-vendor-review.sh:168 gates on
+# `^headless-write-probe:[[:space:]]*passed$`, so this value makes the
+# dispatcher REFUSE Antigravity dispatch — which is the intent. The probe
+# was taken on 1.1.4; print-mode permission-denial semantics changed in
+# 1.1.18/1.1.20 (§9). Re-run the probe on the installed binary and restore
+# `passed` only if the write refusal AND the denial phrasing both still hold.
+headless-write-probe: stale-reverify-required
+headless-write-probe-last-passed-on: 1.1.4
 probe-version: 1.1.4
 probe-date: 2026-07-18
 ---
@@ -192,15 +197,19 @@ Source: [antigravity.google/docs/cli-overview](https://antigravity.google/docs/c
   Treat this as orchestration behavior, not evidence of an unrestricted
   filesystem policy. `[MEDIUM]`
   ([CHANGELOG.md](https://github.com/google-antigravity/antigravity-cli/blob/main/CHANGELOG.md) v1.0.14/v1.1.1)
-- **Per-agent model pinning — CONFIRMED, and it mirrors Claude Code.**
-  A subagent definition carries a **`model`** field which accepts
-  **`inherit`**; the 1.1.16 changelog records a fix for "a subagent
-  whose definition leaves `model` at `inherit` failing to start when the
-  parent agent has no model of its own, which now falls back to the
-  default fast tier." So Antigravity has the same
-  pin-or-inherit shape as Claude Code, with a *fast-tier* fallback
-  rather than a parent-model fallback. `[MEDIUM]`
-  (`agy changelog` 1.1.16, binary 1.1.19)
+- **Per-agent model pinning — CHANGELOG-INDICATED, not confirmed.**
+  `[MEDIUM]` `low-confidence` The 1.1.16 changelog records a fix for "a
+  subagent whose definition leaves `model` at `inherit` failing to start
+  when the parent agent has no model of its own, which now falls back to
+  the default fast tier." **What that supports:** a subagent definition
+  has a `model` field with an `inherit` value path, and an
+  inherit-with-no-parent fallback to the fast tier. **What it does NOT
+  support:** that arbitrary models can be pinned, that the field is
+  public schema, or that behavior mirrors Claude Code — a bugfix line is
+  not a schema. No `agy agents` output existed to inspect (none are
+  defined) and no delegate-and-observe test was run. Resolve with a
+  schema reference or a behavioral test before the guardrail work builds
+  on it. (`agy changelog` 1.1.16, binary 1.1.19)
 - **Agent-definition surface (markdown):** `inheritCustomizations`
   (single switch deciding whether the agent adopts your skills, rules,
   plugins, subagents and MCP servers — 1.1.14, replacing per-kind
@@ -436,6 +445,11 @@ page in depth.
   (`agy --help` output 2026-07-18)
 - **⚠️ PRINT-MODE ERROR SEMANTICS CHANGED — the dispatcher's fail-closed
   check may no longer fire (1.1.18 / 1.1.20).** `[VOLATILE]`
+  ⚠️ **`low-confidence` — 1.1.20 is NOT the installed version.** Installed
+  is **1.1.19**; the 1.1.20 claims below are changelog-sourced and could
+  not be executed here, per
+  [`refresh-vendor.md`](../../protocols/refresh-vendor.md) §"Executable
+  claims must be verified by execution".
   **1.1.20** fixed print mode "treating benign tool execution errors and
   **permission denials** as fatal run failures with non-zero exit
   codes", so headless exit codes now "reflect only cascade-level
@@ -461,10 +475,12 @@ page in depth.
   **Recommend raising the dispatcher floor to ≥1.1.18.** `[MEDIUM]`
   (`agy changelog` 1.1.18)
 - **Workspace read auto-granted under default review mode (1.1.20).**
-  Read/list within the workspace root no longer prompts; modification
-  and external access still confirm. This partially supersedes the
-  "strict mode did not honor read grants" finding recorded from the
-  1.1.4 walk. `[MEDIUM]` (`agy changelog` 1.1.20)
+  `low-confidence` — 1.1.20 is not the installed version (1.1.19), so
+  this is changelog-sourced only. Read/list within the workspace root no
+  longer prompts; modification and external access still confirm. If it
+  holds, it partially supersedes the "strict mode did not honor read
+  grants" finding from the 1.1.4 walk. `[MEDIUM]`
+  (`agy changelog` 1.1.20)
 - **Added since 1.1.4:** `--input-format stream-json` (1.1.15, one turn
   per NDJSON line); `mcp` subcommands `add`/`remove`/`list`/`enable`/
   `disable` (1.1.16); `GEMINI_API_KEY` + `modelProvider: "gemini"` +
@@ -497,10 +513,12 @@ page in depth.
   (a) `--sandbox` enforces shell-command containment, NOT file-write
   read-only. File-write refusal comes from the global CLI
   `toolPermission: "strict"` setting, verified by the probe below.
-  (b) Output is plain text, not JSON — parsing relies on
-  string-matching the rubric's `### Anchored observations` /
-  `### No-anchor observations` headers verbatim. Less robust than
-  JSON.
+  (b) The dispatcher takes plain text and parses it by string-matching
+  the rubric's `### Anchored observations` / `### No-anchor
+  observations` headers verbatim. ⚠️ **Corrected 2026-08-25:** this is a
+  *dispatcher* choice, not a CLI limitation — `agy --help` at 1.1.19
+  lists `--output-format (text, json, stream-json)` and `--json-schema`.
+  Structured output is available and the dispatcher does not use it.
   (c) v1.1.4 headless mode auto-denies a write tool that requires interactive
   confirmation under `strict`; it does not hang.
   (d) **Dispatch floor: agy ≥ 1.1.4.** The dispatcher also verifies the global
@@ -531,13 +549,14 @@ page in depth.
   persistent permission preset. The 2026-07-18 v1.1.4 probe verified that
   composition, but because it depends on mutable settings and minor-version
   behavior the claim is `[MEDIUM]`.
-- **No JSON output format documented.** All output is plain text from
-  `--print` mode. Parsing the rubric's `### Anchored observations` /
-  `### No-anchor observations` shape relies on the agent emitting it
-  verbatim — a known fragility class when peer vendors don't expose a
-  structured output mode. Mitigation: aggressive prompt-shaping in the
-  rubric (see [`plan-review.md`](../../protocols/plan-review.md) for
-  one example). `[MEDIUM]`
+- **~~No JSON output format documented.~~ VERIFIED-FALSE, corrected
+  2026-08-25.** `agy --help` at 1.1.19 lists `--output-format (text,
+  json, stream-json)` and `--json-schema`. The dispatcher still parses
+  plain text by string-matching the rubric's `### Anchored observations`
+  / `### No-anchor observations` headers, so the fragility is real — but
+  it is now a **dispatcher gap, not a vendor limitation**, and is
+  fixable by adopting `--output-format json`. Tracked as a residual.
+  `[MEDIUM]` (`agy --help` 1.1.19)
 - **Settings.json applicability.** The load-bearing headless policy file is
   `~/.gemini/antigravity-cli/settings.json`. A scratch-repo-only
   `.gemini/settings.json` did not apply when Antigravity failed to resolve an
