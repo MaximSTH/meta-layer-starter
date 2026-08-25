@@ -261,7 +261,22 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   full model ID, or `inherit`. **Cost consequence:** with no
   `.claude/agents/` definitions and no `model:` pinned, every subagent —
   including the built-in `Explore` search/fan-out agent — inherits the
-  session model and effort. Pair with §3's depth-3 nesting and the
+  session model and effort. **This repo's guardrail (2026-08-25):**
+  [`.claude/agents/Explore.md`](../../../.claude/agents/Explore.md)
+  shadows the built-in and
+  [`.claude/agents/web-research.md`](../../../.claude/agents/web-research.md)
+  covers web research, both pinned `model: sonnet` / `effort: medium`.
+  **Shadowing + pin verification — CANONICAL RECORD (other files quote
+  this bullet):** (1) a project agent file named `Explore` replaces the
+  built-in in the Agent tool listing (sentinel-description probe);
+  (2) the `model:` pin governs the spawned agent at the **API-request
+  level** — with the pinned file present, the `--debug-file` log of an
+  Opus parent session shows requests to both `claude-opus-5` and
+  `claude-sonnet-5`; (3) control arm: the same task in a directory with
+  NO project agent logs `claude-opus-5` only, confirming built-in
+  inheritance. (An earlier check relied on the subagent's self-reported
+  identity; superseded — self-report proves what the agent said, not
+  which model served it.) All probes 2026-08-25, binary v2.1.220. Pair with §3's depth-3 nesting and the
   absent per-session cap when reasoning about blast radius. Pinning
   `model:` per agent file is the enforcement lever; there is **no
   setting or env var that downgrades subagents relative to the main
