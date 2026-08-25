@@ -2,7 +2,7 @@
 name: vendor-knowledge-claude-code
 description: Volatility-tagged knowledge of Claude Code (CLI) — canonical file, skills, subagents, hooks, auth, rate limits, cost, MCP, headless. Drives cross-vendor scripts and /refresh-vendor.
 status: reference
-last-verified: 2026-07-18
+last-verified: 2026-08-25
 ---
 
 # Claude Code — vendor knowledge
@@ -35,6 +35,17 @@ Each claim's tag describes how often the underlying content tends to change:
 - **`[MEDIUM]`** — minor version bumps or quarterly cadence.
 - **`[VOLATILE]`** — monthly or faster.
 
+### Verification boundary (2026-08-25 walk)
+
+Executable claims were verified against the **locally installed binary,
+v2.1.220**. npm latest at walk time was **v2.1.245**. Claims sourced only
+from the changelog or docs for **v2.1.221–v2.1.245 could not be executed
+here** and are marked **`low-confidence`** inline, per
+[`refresh-vendor.md`](../../protocols/refresh-vendor.md) §"Executable
+claims must be verified by execution, not by page-fetch". A resolving
+docs URL is evidence the docs site is reachable, not that the claim is
+true. Re-run these against an installed ≥2.1.245 binary at the next walk.
+
 A weekly calendar reminder triggers the cadence — when it fires, open Claude Code in the repo and type `/refresh-vendor <vendor>`. That supervised session walks every claim regardless of tier (Claude reads `last-verified` itself during step 2 of the protocol). The tiers inform per-claim re-tagging and form a ceiling on inter-walk gap: VOLATILE 60 days, MEDIUM 90 days, STABLE yearly.
 
 The `last-verified` frontmatter date is the date of the **last applied change**, not the date of the last walk. Walk dates live in [`markdowns/agents/refresh-log.md`](../refresh-log.md).
@@ -50,7 +61,12 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   (`enhancement` + `duplicate` + `area:core`), no official Anthropic
   merge signal. The memory docs now officially document the workaround:
   a `CLAUDE.md` containing `@AGENTS.md` (import) or a symlink, and
-  `/init` reads an existing `AGENTS.md` when generating `CLAUDE.md`.
+  `/init` reads an existing `AGENTS.md` when generating `CLAUDE.md`
+  (with `CLAUDE_CODE_NEW_INIT=1`). **New: `/import` (v2.1.213+)** brings
+  another agent's configuration in — but it appends a **one-time copy**
+  of `AGENTS.md` into `CLAUDE.md` (plus MCP servers, commands, subagents,
+  skills), so it is a migration aid, **not** a replacement for this
+  repo's sync hook, which must keep the mirror current on every commit.
   `[MEDIUM]`
   ([github.com/anthropics/claude-code/issues/34235](https://github.com/anthropics/claude-code/issues/34235),
   [code.claude.com/docs/en/memory](https://code.claude.com/docs/en/memory))
@@ -80,7 +96,25 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   read limit and reminds Claude to shorten it when near, or returns an
   error when over (content past the limit is dropped on next load). As
   of v2.1.211 the check strips YAML frontmatter + block-level HTML
-  comments before measuring, so only loaded content counts. `[MEDIUM]`
+  comments before measuring, so only loaded content counts. Memory
+  files carry a `modified` ISO-8601 frontmatter timestamp written on
+  each save (v2.1.214+; added only to files that already have
+  frontmatter). The memory directory is **excluded** from the
+  `cleanupPeriodDays` retention sweep. `CLAUDE_CODE_PROJECT_DIR_NAME`
+  (v2.1.234+, **`low-confidence`** — post-2.1.220, not executed here) pins
+  the `<project>` directory name. `[MEDIUM]`
+  ([code.claude.com/docs/en/memory](https://code.claude.com/docs/en/memory))
+- **CLAUDE.md loading limits + scopes:** a CLAUDE.md up to **4 MiB**
+  loads in full; larger is skipped entirely (target <200 lines for
+  adherence). Managed-policy scope: `/Library/Application
+  Support/ClaudeCode/CLAUDE.md` (macOS), `/etc/claude-code/CLAUDE.md`
+  (Linux/WSL), `C:\Program Files\ClaudeCode\CLAUDE.md` (Windows), or
+  inline via the `claudeMd` managed-settings key — none excludable by
+  `claudeMdExcludes`. `CLAUDE.local.md` is the gitignored per-project
+  personal layer. Imports resolve max **4 hops**; an import resolving
+  outside the working directory triggers a one-time approval dialog.
+  `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1` loads memory files
+  from `--add-dir` directories. `[MEDIUM]`
   ([code.claude.com/docs/en/memory](https://code.claude.com/docs/en/memory))
 - **Memory imports:** `CLAUDE.md` supports `@path/to/file.md` import syntax
   for splitting context. `[STABLE]`
@@ -94,15 +128,36 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   `~/.claude/skills/<skill-name>/SKILL.md` (personal). Plugin skills live at
   `<plugin>/skills/<skill-name>/SKILL.md`. `[STABLE]`
   ([code.claude.com/docs/en/skills](https://code.claude.com/docs/en/skills))
-- **Frontmatter — fully-supported fields:** `name`, `description`,
+- **Frontmatter — fully-supported fields (20):** `name`, `description`,
   `disable-model-invocation`, `user-invocable`, `allowed-tools`,
-  `disallowed-tools`, `model`, `effort`, `context`, `agent`, `hooks`,
-  `paths`, `arguments`, `argument-hint`, `when_to_use`, `shell`. Only
-  `description` is recommended; all others optional. `[MEDIUM]`
+  `disallowed-tools`, `model`, `effort`, `context`, `agent`,
+  `background`, `hooks`, `paths`, `arguments`, `argument-hint`,
+  `when_to_use`, `shell`, `metadata`, `license`, `compatibility`. Only
+  `description` is recommended; all others optional. `background`
+  applies **only** with `context: fork` — default `true`; set `false` to
+  wait for the forked subagent in the invoking turn (v2.1.218+).
+  Boolean fields accept `yes`/`no`/`on`/`off`/`1`/`0` in any case
+  alongside `true`/`false` (v2.1.218+). `[MEDIUM]`
   ([code.claude.com/docs/en/skills#frontmatter-reference](https://code.claude.com/docs/en/skills))
-- **Cross-vendor portable subset:** `name` + `description` only.
-  Other fields are Claude-Code-specific and omitted from skills authored at
-  `.agents/skills/` for cross-vendor portability. `[STABLE]`
+- **Cross-vendor portable subset — SIX fields, corrected 2026-08-25.**
+  The Agent Skills spec subset is `name`, `description`, `license`,
+  `compatibility`, `metadata`, `allowed-tools`. (This file previously
+  said `name` + `description` only — an undercount.) Everything else is
+  Claude-Code-specific. Outside Claude Code — claude.ai skill uploads,
+  the Skills API, `package_skill.py` — a non-spec field is a **hard
+  error**, not an ignored key: `Unexpected key(s) in SKILL.md
+  frontmatter: …`.
+  **This repo enforces a stricter rule than the spec.**
+  [`scripts/check-skill-frontmatter.sh`](../../../scripts/check-skill-frontmatter.sh)
+  (pre-commit) allows only **`name` + `description`** in
+  `.agents/skills/` and fails the commit on anything else. Six is the
+  spec ceiling; two is our floor, and the gate wins. ⚠️ Note the gate's
+  rationale comment lists `allowed-tools` as "Claude Code specific" —
+  that is factually wrong (it is one of the spec's six portable fields),
+  though the stricter *policy* may still be intentional. Flagged
+  2026-08-25; policy decision left to the supervisor. `[MEDIUM]`
+  ([code.claude.com/docs/en/skills](https://code.claude.com/docs/en/skills),
+  [agentskills.io](https://agentskills.io))
 - **Invocation modes:** model-invoked (auto, by description match) or
   user-invoked (`/skill-name`). `disable-model-invocation: true` blocks the
   former; `user-invocable: false` blocks the latter. `[STABLE]`
@@ -116,12 +171,24 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   (v2.1.145+), plus `/doctor` (v2.1.205 — was a built-in command before;
   it is the one bundled skill exempt from `disableBundledSkills`, hide it
   via `DISABLE_DOCTOR_COMMAND` or a `skillOverrides` `"doctor": "off"`
-  entry), plus more. Disable via the `disableBundledSkills`
-  setting; per-skill visibility via `skillOverrides`. Listed in
+  entry), plus more. Docs additionally name `/dataviz`,
+  `/deep-research`, `/design-sync`, and `/fewer-permission-prompts`.
+  **Auto-invocation narrowed:** Claude no longer runs `/verify` or
+  `/code-review` on its own (v2.1.215), and `/deep-research` starts only
+  when invoked manually (v2.1.218) — all three are now user-invoked.
+  `/code-review` runs as a background subagent (v2.1.218). Disable via
+  the `disableBundledSkills` setting; per-skill visibility via
+  `skillOverrides`. Listed in
   [code.claude.com/docs/en/commands](https://code.claude.com/docs/en/commands). `[MEDIUM]`
 - **`claude ultrareview` subcommand** (also reachable as `/code-review
   ultra`): cloud-hosted multi-agent review of the current branch or a
-  PR number, prints findings. `[MEDIUM]` (`claude --help`, v2.1.210)
+  PR number / base branch, prints findings. Options: `--json` (raw
+  `bugs.json` payload), `--timeout <minutes>` (default 30). `[MEDIUM]`
+  (`claude ultrareview --help`, v2.1.220)
+- **`context: fork` skills run in the BACKGROUND by default**
+  (v2.1.218) — opt out per skill with `background: false`. Relevant to
+  any protocol skill in this repo that later adopts `context: fork`.
+  `[MEDIUM]` (CHANGELOG 2.1.218)
 - **Live reload:** edits to `~/.claude/skills/`, project `.claude/skills/`,
   or `--add-dir` `.claude/skills/` take effect within the current session
   without restart. New top-level directories require restart. `[MEDIUM]`
@@ -140,31 +207,78 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   ([code.claude.com/docs/en/sub-agents](https://code.claude.com/docs/en/sub-agents))
 - **Parallel spawn:** YES. The main agent invokes multiple `Agent` tool calls
   in a single message, and they run in parallel. `[STABLE]`
-- **Subagents CAN spawn nested subagents (as of v2.1.172).** A subagent
-  with the `Agent` tool in its `tools` list spawns its own subagents;
-  only the top-level subagent's summary returns to the main
-  conversation. **Depth limit is 5** — a subagent at depth 5 does not
-  receive the `Agent` tool and cannot spawn further; the limit is fixed,
-  not configurable. A `context: fork` still can't spawn another fork but
-  can spawn other subagent types (they count toward the depth limit).
-  Per-session cap is 200 subagents (`CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`,
-  configurable v2.1.212+). To bar a specific subagent from nesting, omit
-  `Agent` from its `tools` or add it to `disallowedTools`. The
-  `Agent(agent_type)` allowlist syntax applies only to a main-thread
-  `claude --agent` run, not inside a subagent definition. `[MEDIUM]`
+- **Subagents CAN spawn nested subagents — default depth 3, and the
+  limit IS configurable.** A subagent with the `Agent` tool in its
+  `tools` list spawns its own subagents; only the top-level subagent's
+  summary returns to the main conversation. **Default depth is 3**
+  (three layers below the main conversation); at the limit Claude Code
+  withholds the `Agent` tool from every subagent *except* a fork. Set
+  **`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`** to change it (`1` disables
+  nesting entirely). Documented version history: depth 5 for
+  v2.1.172–.216 → 1 for v2.1.217–.218 → **3 from v2.1.219**. To bar a
+  specific subagent from nesting, omit `Agent` from its `tools` or add
+  it to `disallowedTools`. The `Agent(agent_type)` allowlist syntax
+  applies only to a main-thread `claude --agent` run, not inside a
+  subagent definition. `[MEDIUM]`
+  ([code.claude.com/docs/en/sub-agents](https://code.claude.com/docs/en/sub-agents),
+  CHANGELOG 2.1.217 / 2.1.219)
+- **Caps — the per-session cap is GONE; a concurrency cap replaced it.**
+  The 200-subagent-per-session spawn cap
+  (`CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`, added v2.1.212) was
+  **removed in v2.1.224** (**`low-confidence`** — post-2.1.220, not
+  executed here); docs state plainly there is *no per-session cap on
+  total subagents*. What remains is a **20
+  concurrent** limit (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`, v2.1.217);
+  exceeding it fails with `Concurrent subagent limit reached`. Sessions
+  with ultracode active are exempt. Forks started with `/subtask` take a
+  slot but are never blocked, and resuming a finished subagent takes a
+  fresh slot without checking the limit — so the running count can
+  exceed 20. **Consequence: concurrency is bounded, total spend is
+  not.** `[MEDIUM]`
+  ([code.claude.com/docs/en/sub-agents](https://code.claude.com/docs/en/sub-agents),
+  CHANGELOG 2.1.217 / 2.1.224)
+- **Fork mode is ON by default in interactive sessions (v2.1.232;
+  `low-confidence` — post-2.1.220, not executed here).** A
+  `subagent_type: "fork"` subagent inherits the full conversation and
+  prompt cache. While fork mode is on, Claude Code runs *all* spawned
+  subagents (fork and non-fork) in the background and removes the
+  `Agent` tool's `run_in_background` parameter. Control with
+  `CLAUDE_CODE_FORK_SUBAGENT` (`1` on for non-interactive / Agent SDK,
+  `0` off everywhere); to keep fork mode but bar forks, deny
+  `Agent(fork)` in `permissions`. `[MEDIUM]`
   ([code.claude.com/docs/en/sub-agents](https://code.claude.com/docs/en/sub-agents))
 - **`agent teams` is a separate primitive.** For multi-agent communication
   across separate sessions; not used in this repo's foundation. `[MEDIUM]`
-- **Frontmatter — supported fields:** `description`, `prompt`, `tools`,
+- **Frontmatter — supported fields:** `name`, `description`, `tools`,
   `disallowedTools`, `model`, `permissionMode`, `mcpServers`, `hooks`,
   `maxTurns`, `skills`, `initialPrompt`, `memory`, `effort`, `background`,
-  `isolation`, `color`. Plugin subagents ignore `hooks`, `mcpServers`,
+  `isolation`, `color`. `name` + `description` are the required pair.
+  (`prompt` is a `--agents` JSON key, not a field in the file-based
+  frontmatter table.) Plugin subagents ignore `hooks`, `mcpServers`,
   `permissionMode` for security. `[MEDIUM]`
+- **`model` defaults to `inherit` — subagents run the parent session's
+  model unless pinned.** Accepts `sonnet`, `opus`, `haiku`, `fable`, a
+  full model ID, or `inherit`. **Cost consequence:** with no
+  `.claude/agents/` definitions and no `model:` pinned, every subagent —
+  including the built-in `Explore` search/fan-out agent — inherits the
+  session model and effort. Pair with §3's depth-3 nesting and the
+  absent per-session cap when reasoning about blast radius. Pinning
+  `model:` per agent file is the enforcement lever; there is **no
+  setting or env var that downgrades subagents relative to the main
+  session** (settings reference verified 2026-08-25: `model`,
+  `availableModels`, `modelPicker`, `enforceAvailableModels`,
+  `modelOverrides`, `fallbackModel`, `advisorModel`, `agent` — none does
+  this). `[MEDIUM]`
+  ([code.claude.com/docs/en/sub-agents](https://code.claude.com/docs/en/sub-agents),
+  [code.claude.com/docs/en/settings-reference](https://code.claude.com/docs/en/settings-reference))
 - **Built-in subagents:** `Explore`, `Plan`, `general-purpose`, plus skill-
   forked agents via `context: fork`. `[STABLE]`
-- **Background-by-default (v2.1.198):** Claude runs subagents in the
-  background by default unless it needs the result immediately; force it
-  with `background: true`. Remove built-in Explore/Plan via
+- **Background-by-default (v2.1.198; superseded in part by fork mode
+  above).** Claude runs subagents in the background by default unless it
+  needs the result immediately; force it with `background: true`. Once
+  fork mode is on (v2.1.232, the interactive default) the "unless it
+  needs the result immediately" escape is gone — `run_in_background` is
+  removed and every spawn is backgrounded. Remove built-in Explore/Plan via
   `CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS=1` (v2.1.198). The `/agents`
   interactive creation wizard was removed (v2.1.198) — author files in
   `.claude/agents/` directly or ask Claude to write one; file locations
@@ -186,10 +300,24 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   `PostToolBatch`, `PermissionRequest`, `PermissionDenied`,
   `SubagentStart`, `SubagentStop`, `TaskCreated`, `TaskCompleted`,
   `TeammateIdle`, `InstructionsLoaded`, `ConfigChange`, `FileChanged`,
-  `CwdChanged`, `PreCompact`, `PostCompact`, `Notification`,
-  `MessageDisplay`, `WorktreeCreate`, `WorktreeRemove`, `Elicitation`,
-  `ElicitationResult`. `[MEDIUM]`
+  `CwdChanged`, `DirectoryAdded`, `PreCompact`, `PostCompact`,
+  `Notification`, `MessageDisplay`, `WorktreeCreate`, `WorktreeRemove`,
+  `Elicitation`, `ElicitationResult`. **31 events** — `DirectoryAdded`
+  added v2.1.219 (fires after `/add-dir` or the SDK `register_repo_root`
+  control request; matcher filters on `slash_command` /
+  `register_repo_root`). `[MEDIUM]`
   ([code.claude.com/docs/en/hooks](https://code.claude.com/docs/en/hooks))
+- **⚠️ Matcher-semantics change (v2.1.214) — can silently narrow an
+  existing hook.** A single-segment `dir/**` in a hook `if:` condition
+  now matches only `<cwd>/dir`; write `**/dir/**` for any-depth
+  matching. `deny` / `ask` **permission** rules keep their any-depth
+  match, so the two syntaxes no longer mean the same thing. Audit any
+  `if:` condition written before v2.1.214. `[MEDIUM]`
+  (CHANGELOG 2.1.214)
+- **Agent-frontmatter hooks require workspace trust (v2.1.218):** hooks
+  declared in a subagent file now require that file's own folder to have
+  accepted workspace trust before they run. `[MEDIUM]`
+  (CHANGELOG 2.1.218)
 - **Hook handler types:** `command` (shell, JSON on stdin), `http` (POST),
   `mcp_tool` (call an MCP server tool), `prompt` (send to Claude), `agent`
   (spawn subagent — experimental). All accept `if`, `timeout`, `statusMessage`,
@@ -222,8 +350,9 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
 
 **Re-verify before relying. Window doubled in May 2026; weekly caps were
 introduced 2025-08-28 and stayed flat through the May 2026 doubling.
-Effective 2026-06-15, `claude -p` / Agent SDK usage moves to a separate
-monthly credit (see below) — interactive limits no longer apply to it.**
+⚠️ The separate Agent-SDK monthly credit announced for 2026-06-15 was
+PAUSED and never took effect — `claude -p` still draws from subscription
+usage limits. See the Agent SDK bullet below.**
 
 - **5-hour rolling window** is the primary limit; resets per first-prompt
   timestamp. `[VOLATILE]`
@@ -241,24 +370,36 @@ monthly credit (see below) — interactive limits no longer apply to it.**
 - **Weekly caps (introduced 2025-08-28):** apply to heavy users on Pro and
   Max. Anthropic does not publish absolute numbers. `[VOLATILE]`
   ([jdhodges.com/blog/claude-ai-usage-limits](https://www.jdhodges.com/blog/claude-ai-usage-limits/))
-- **Agent SDK credit (effective 2026-06-15):** `claude -p` / Agent SDK
-  usage on subscription plans stops drawing from interactive usage
-  limits and draws from a separate monthly credit instead — Pro $20,
-  Max 5x $100, Max 20x $200, Team $20 (standard) / $100 (premium
-  seats). When depleted, usage flows to API-rate usage credits if
-  enabled; otherwise SDK requests stop until the credit refreshes.
-  Interactive sessions are unchanged. `[VOLATILE]`
-  ([code.claude.com/docs/en/headless](https://code.claude.com/docs/en/headless),
-  [support.claude.com/en/articles/15036540](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan))
+- **Agent SDK credit — ANNOUNCED, THEN PAUSED. Not in effect.**
+  `[VOLATILE]` A separate monthly credit for `claude -p` / Agent SDK
+  usage (Pro $20, Max 5x $100, Max 20x $200, Team $20 standard / $100
+  premium) was announced for **2026-06-15**. Anthropic paused it; the
+  support article now reads: *"Nothing has changed: Claude Agent SDK,
+  `claude -p`, and third-party app usage still draw from your
+  subscription's usage limits."* No new timeline announced.
+  **Operational consequence:** scripted `claude -p` — including
+  [`cross-vendor-review.sh`](../../../scripts/cross-vendor-review.sh) —
+  shares the interactive 5-hour window, so exhaustion recovers in
+  **hours**, not on a monthly credit refresh. The prior entry in this
+  file asserted the credit as live fact; corrected 2026-08-25.
+  ⚠️ Single-channel claim — corroborated only by the support article
+  below; re-verify next walk.
+  ([support.claude.com/en/articles/15036540](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan))
 - **Rate-limit error surface in headless mode:** stream-json events include
   `error: "rate_limit"` in the `system/api_retry` event. Use this to detect
   exhaustion programmatically. `[STABLE]`
   ([code.claude.com/docs/en/headless](https://code.claude.com/docs/en/headless))
 - **Recovery posture:** on rate-limit hit, abort and re-run via
   `cross-vendor-review.sh --to <other-vendor>`. No automatic API-key
-  fallback. Note: from 2026-06-15, scripted `claude -p` exhaustion is
-  Agent-SDK-credit exhaustion (monthly refresh, not a 5-hour window) —
-  vendor-switch remains the only same-day recovery.
+  fallback. Scripted `claude -p` exhaustion is **5-hour-window**
+  exhaustion (the paused SDK credit never landed), so waiting out the
+  window is a real same-day option alongside the vendor switch.
+  `[MEDIUM]`
+- **Usage-limit auto-continue (v2.1.198+/.234):** Claude Code resumes a
+  session automatically when a claude.ai usage limit resets; disable via
+  `/config` → "Continue automatically at usage limit".
+  **`low-confidence`** — post-2.1.220, not executed here. `[MEDIUM]`
+  (CHANGELOG 2.1.234)
 
 ---
 
@@ -285,9 +426,16 @@ monthly credit (see below) — interactive limits no longer apply to it.**
 - **API alt:** Pay-per-token via Claude API at standard model rates (Opus,
   Sonnet, Haiku). Subscriptions reach API-rate purchase once limits hit.
   `[STABLE]` ([anthropic.com/api](https://www.anthropic.com/api))
-- **Headless / Agent SDK cost is credit-based from 2026-06-15:** see the
-  Agent SDK credit bullet in §6 — scripted `claude -p` runs no longer
-  share the interactive subscription window. `[VOLATILE]`
+- **Headless / Agent SDK cost is NOT credit-based.** The 2026-06-15
+  credit was paused (§6) — scripted `claude -p` still shares the
+  interactive subscription window. `[VOLATILE]`
+- **Cost-estimate mechanics:** `/cost`, the status line, and
+  `--max-budget-usd` include a **1.1× US-only-inference premium** for
+  data-residency workspaces (v2.1.239; **`low-confidence`** —
+  post-2.1.220, not executed here). Organizations can override list
+  price with contracted rates via the `modelPricing` managed setting
+  (v2.1.243). All figures are client-side estimates and can differ from
+  the actual bill. `[MEDIUM]` (CHANGELOG 2.1.239 / 2.1.243)
 - **Per-call cost in headless mode:** `--output-format json` emits
   `total_cost_usd` and a per-model breakdown. Use `--max-budget-usd` to cap
   spend per invocation. `[STABLE]`
@@ -304,15 +452,23 @@ monthly credit (see below) — interactive limits no longer apply to it.**
   via `.mcp.json` / `claude mcp add-json` — no OAuth, no `--transport`
   flag support). Add others via `claude mcp add --transport <type>
   <name> <url>`. Configured in `.mcp.json`, `~/.claude.json`, or scoped
-  to a subagent / skill via the `mcpServers` frontmatter field. Note:
-  the binary's `add-json` help text still says "stdio or SSE" — docs
-  and binary conflict on the transport list, and the websocket
-  sub-claim is verified against docs only (binary-level check —
-  behavioral `add-json` test — pending next walk). Re-tagged
-  `[STABLE]` → `[MEDIUM]` until that conflict is resolved at the
-  binary channel. `[MEDIUM]`
+  to a subagent / skill via the `mcpServers` frontmatter field.
+  **WebSocket conflict RESOLVED at the binary channel (2026-08-25) —
+  re-tagged `[MEDIUM]` → `[STABLE]`.** The binary's `add-json` help text
+  still reads "stdio or SSE", but that is a stale help label, not
+  behavior: a live probe ran
+  `claude mcp add-json <name> '{"type":"ws","url":"wss://…"}'` → *"Added
+  ws MCP server … to local config"*, while a control payload
+  (`"type":"carrierpigeon"`) was rejected with *"Invalid configuration"*
+  — proving the binary validates the type rather than accepting
+  anything. Probe was run in an isolated scratch cwd and removed.
+  WebSocket specifics: `type: "ws"` takes the same `url`, `headers`,
+  `headersHelper`, `timeout`, `alwaysLoad` fields as `http`; auth is
+  header-only (no OAuth); `--transport` does **not** accept `ws`; and
+  ws servers do **not** appear in `claude mcp list` (use `claude mcp get`
+  or `/mcp`). `[STABLE]`
   ([code.claude.com/docs/en/mcp](https://code.claude.com/docs/en/mcp),
-  `claude mcp --help` v2.1.210)
+  `claude mcp --help` v2.1.220, live `add-json` probe 2026-08-25)
 - **OAuth 2.0 supported** for HTTP servers requiring auth. `[STABLE]`
 - **As server:** YES via `claude mcp serve` — exposes Claude Code's
   built-in tools (Read, Write, Edit, Bash, Glob, Grep, LS, etc.) over stdio
@@ -368,7 +524,10 @@ monthly credit (see below) — interactive limits no longer apply to it.**
   dontAsk | plan` (the surfaced enum name is now `manual`, the alias for
   the old `default`, added v2.1.200; `default` still resolves. `auto` =
   background classifier reviews commands), `--permission-prompt-tool
-  <mcp-tool>`. `[STABLE]` (`claude --help` v2.1.210)
+  <mcp-tool>`. Under `-p` the **starting** permission mode is `manual`
+  on every plan — pass the mode you want explicitly. `[STABLE]`
+  (`claude --help` v2.1.220,
+  [code.claude.com/docs/en/headless](https://code.claude.com/docs/en/headless))
 - **Output formats:** `text` (default), `json` (with `total_cost_usd`,
   `session_id`, `result`), `stream-json` (NDJSON, includes `system/init`,
   `system/api_retry`, `stream_event`). `--json-schema` enforces a schema;
@@ -391,7 +550,25 @@ monthly credit (see below) — interactive limits no longer apply to it.**
   `--include-partial-messages`, `--no-session-persistence`,
   `--exclude-dynamic-system-prompt-sections`, `--forward-subagent-text`
   (v2.1.211), `--replay-user-messages`, `--append-subagent-system-prompt`
-  (v2.1.205). `[MEDIUM]` (`claude --help` v2.1.210,
+  (v2.1.205). `[MEDIUM]` (`claude --help` v2.1.220,
+  [code.claude.com/docs/en/headless](https://code.claude.com/docs/en/headless))
+- **Added since v2.1.210** (binary-verified at v2.1.220 unless noted):
+  flags `--brief`, `--include-hook-events`, `--prompt-suggestions`,
+  `--file`, `--from-pr`, `--betas`, `--setting-sources`, `--plugin-url`,
+  `--session-id`, `--strict-mcp-config`, `--bg`/`--background`,
+  `-w`/`--worktree`, `--tmux`, `-n`/`--name`, `--chrome`/`--no-chrome`,
+  `--ax-screen-reader`, `--allow-dangerously-skip-permissions`,
+  `--system-prompt`. `-p` **rejects** `--bg`. Stream mechanics:
+  `system/init` gains `mcp_server_errors` (v2.1.219, CI can fail on a
+  non-empty array) alongside `capabilities` and `plugin_errors`; nested
+  subagents at depth-2+ now appear under `--forward-subagent-text`
+  (v2.1.219); the exit drain scales with queued bytes capped at 30s
+  (v2.1.214, was ~2s and truncated large responses); `--mcp-config`
+  under `-p` waits for pending servers up to `MCP_TIMEOUT` 30s
+  (v2.1.221); `--resume <id>` now resolves across projects (v2.1.223) —
+  both **`low-confidence`**, post-2.1.220 and not executed here;
+  SIGTERM exits 143 after running `SessionEnd` hooks. `[MEDIUM]`
+  (`claude --help` v2.1.220,
   [code.claude.com/docs/en/headless](https://code.claude.com/docs/en/headless))
 - **Continuation:** `--continue` resumes most recent; `--resume <session-id>`
   resumes a specific session. `[STABLE]`
@@ -404,18 +581,48 @@ monthly credit (see below) — interactive limits no longer apply to it.**
   (canary test, 2026-06-10), and the script's fixed `From:` prefix
   occupies that position; the property holds only while the prefix
   stays first in `PROMPT`. `[MEDIUM]`
+- **⚠️ SECURITY — a `-p` review without `--bare` executes the hooks of
+  the directory it is LAUNCHED FROM (recorded 2026-08-25, unfixed).**
+  Docs state it plainly: *"Without
+  `--bare`, a `-p` session runs the hooks in a project's
+  `.claude/settings.json` and connects the servers in its `.mcp.json`,
+  even in a folder you've never trusted. A `-p` session shows no
+  workspace trust dialog and no per-server approval prompt."*
+  [`cross-vendor-review.sh:117`](../../../scripts/cross-vendor-review.sh)
+  invokes `claude -p "$PROMPT" --allowedTools "Read,Grep,Glob"` with no
+  `--bare`. **Precision matters:** the script passes `$TARGET` as prompt
+  text only and never changes directory, so the configuration that
+  executes is the **dispatcher's own working directory**, not `$TARGET`.
+  The exposure is therefore conditional — it bites when the dispatcher
+  is launched from inside an untrusted checkout (the normal case, since
+  you review your own branch from your own repo). The `--allowedTools`
+  allowlist constrains **Claude's** tools; it does not stop that
+  directory's hooks from running. Adding `--bare` is the fix, but not a
+  one-liner: auth then becomes strictly `ANTHROPIC_API_KEY` /
+  `apiKeyHelper`. **Deliberately out of scope for this walk — tracked as
+  an open residual.** `[MEDIUM]`
+  ([code.claude.com/docs/en/headless](https://code.claude.com/docs/en/headless),
+  `scripts/cross-vendor-review.sh:108-117`)
 
 ---
 
 ## 10. Gaps / Claude-Code-down notes
 
-- **Subagent → subagent nesting:** supported as of v2.1.172 (fixed depth
-  limit 5 — see §3). No longer a Claude-side constraint on fan-out.
-  **Cross-vendor head-to-head (both halves verified 2026-07-18):** Claude
-  Code nests to a fixed depth 5 (not configurable), 200 subagents/session;
-  Codex defaults to `max_depth=1` but is **raisable** via config
-  (`max_threads=6`). Both do parallel fan-out. See
-  [`codex-cli.md`](codex-cli.md) §3. Pending marker retired. `[MEDIUM]`
+- **Subagent → subagent nesting:** supported, **default depth 3 and
+  configurable** via `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (see §3). No
+  longer a Claude-side constraint on fan-out.
+  **Cross-vendor head-to-head — RETIRED. No replacement asserted.** The
+  prior framing (Claude "fixed depth 5, not configurable, 200/session"
+  vs Codex "default 1 but raisable") is withdrawn because its **Claude
+  half is verified-false**: Claude is default-3, configurable, and its
+  per-session cap is gone. **Only the Claude half is established as of
+  2026-08-25.** No current comparative claim is made here — the Codex
+  half was last verified 2026-07-18 against binary 0.139.0 while 0.144.5
+  is installed, so any "both vendors now…" statement would outrun the
+  evidence. ⚠️ **PENDING (opened 2026-08-25):** rebuild the head-to-head
+  during the next `/refresh-vendor codex` walk, once the Codex half is
+  re-verified; do not restate Codex numbers from this file until then.
+  See [`codex-cli.md`](codex-cli.md) §3. `[MEDIUM]`
 - **`AGENTS.md` not native:** if Claude Code ships native support, the
   pre-commit duplicate-and-sync hook becomes redundant. Track via
   Issue #34235. Interim: Anthropic now officially documents a
