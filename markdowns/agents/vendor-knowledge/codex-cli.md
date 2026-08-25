@@ -172,12 +172,24 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   at 0.144.5 accepted an inline `AgentRoleToml` carrying `model`, but
   the **control carrying a nonsense field was accepted too** — the
   struct ignores unknown fields, so acceptance proves nothing about
-  whether the key is honored. Treat as docs-sourced until a behavioral
-  test (delegate to a pinned agent, observe the model actually used)
-  runs. **This is the load-bearing claim for the cross-vendor model
-  guardrail — verify it before building on it.**
+  whether the key is honored. A behavioral delegate-and-observe attempt
+  (2026-08-25, 0.144.5) failed one step EARLIER: `codex exec --json`
+  with an explicit "delegate to <agent>" prompt produced
+  `collab_tool_call` events with **empty `receiver_thread_ids`** — no
+  subagent thread ever spawned; the top-level model answered itself
+  (its plain-text reply mimicked successful delegation, which a
+  non-JSON run would have miscounted as success). So headless
+  delegation-on-request is itself unverified at defaults, and the
+  `model` field is untestable until a spawn is achieved (interactive
+  `/agent`, or whatever configuration headless spawning needs). Treat
+  as docs-sourced. **Consequence for the model guardrail:** no Codex
+  enforcement artifact ships until a spawn is demonstrable — an
+  unverifiable pin is exactly the false confidence the harness bans.
+  The exposure this leaves is small: Codex delegation is
+  explicit-request-only AND, per this probe, does not spawn in headless
+  defaults even when asked.
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents),
-  `codex exec --strict-config` probe 2026-08-25)
+  `codex exec --strict-config` + `--json` delegation probes 2026-08-25)
 - **⚠️ `agents.default_subagent_model` does NOT exist at 0.144.5 —
   docs contradicted by binary.** The docs page describes
   `agents.default_subagent_model` and
