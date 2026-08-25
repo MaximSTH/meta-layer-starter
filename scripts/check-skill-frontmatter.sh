@@ -8,11 +8,15 @@
 #   - name
 #   - description
 #
-# Banned fields (vendor-specific or non-portable):
+# Banned fields (outside this repo's strict floor):
 #   - tools          (Claude Code specific)
 #   - user_invocable (vendor-prefixed convention)
 #   - model          (vendor-specific)
-#   - allowed-tools  (Claude Code specific)
+#   - allowed-tools  (an Agent Skills SPEC field — banned here by POLICY,
+#                    not portability: this repo's floor is stricter than
+#                    the spec's six-field subset. Supervisor ruling
+#                    2026-08-25: keep the strict floor. See
+#                    claude-code.md §2 for the spec subset.)
 #   - argument-hint  (vendor-specific)
 #   - status         (skills don't use markdown-lifecycle status — that's
 #                    for markdowns/ files only)

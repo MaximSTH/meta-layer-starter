@@ -74,8 +74,12 @@ by a vendor with *better* release hygiene than this.
 
 **Re-evaluation triggers (any one reopens the analysis):**
 1. An official changelog URL resolves, or `xai-org/grok-build` gains
-   tagged releases.
-2. 60 days elapse with the CLI surface stable (spot-check the docs).
+   tagged releases. **Checked as a 2-fetch step in the weekly
+   `/refresh-vendor` session** (`x.ai/build/changelog` +
+   `github.com/xai-org/grok-build/releases`); log a one-liner in the
+   refresh ledger when checked.
+2. 60 days elapse with the CLI surface stable — **backstop date:
+   2026-10-24**. Re-run the analysis then regardless of trigger 1.
 3. A supervised install + write-refusal probe session is explicitly
    authorized despite the above (supervisor's prerogative — the memo
    only advises).
