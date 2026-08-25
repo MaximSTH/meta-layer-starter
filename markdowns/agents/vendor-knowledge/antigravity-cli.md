@@ -3,14 +3,20 @@ name: vendor-knowledge-antigravity-cli
 description: Volatility-tagged knowledge of Antigravity CLI — Google's coding CLI (`agy`). Canonical instructions file, skills, subagents, hooks, auth, rate limits, cost, MCP, headless invocation. Drives cross-vendor scripts and /refresh-vendor.
 status: reference
 last-verified: 2026-08-25
-# ⚠️ Value deliberately NOT `passed`. cross-vendor-review.sh:168 gates on
-# `^headless-write-probe:[[:space:]]*passed$`, so this value makes the
-# dispatcher REFUSE Antigravity dispatch — which is the intent. The probe
-# was taken on 1.1.4; print-mode permission-denial semantics changed in
-# 1.1.18/1.1.20 (§9). Re-run the probe on the installed binary and restore
-# `passed` only if the write refusal AND the denial phrasing both still hold.
-headless-write-probe: stale-reverify-required
-headless-write-probe-last-passed-on: 1.1.4
+# Probe RE-RUN 2026-08-25 on binary 1.1.20 (three arms, scratch git repo,
+# global strict+sandbox + project hardening in force): (1) write_file tool
+# request auto-denied, sentinel absent; (2) shell-write attempt also
+# auto-denied, sentinel absent; (3) benign control produced normal output
+# without tripping the dispatcher's denial grep. Denial phrasing on 1.1.20
+# ("no output produced — a tool required the \"write_file\" permission …
+# auto-denied") still matches cross-vendor-review.sh's fail-closed regex.
+# NOTE: denial exits 0 on 1.1.20 (changelog claim confirmed by probe) —
+# text-grep is the ONLY working detection; exit codes are useless for this.
+# The dispatcher's version gate requires headless-write-probe-verified-on
+# to EQUAL the installed binary — re-run this probe on every agy bump.
+headless-write-probe: passed
+headless-write-probe-verified-on: 1.1.20
+headless-write-probe-history: 1.1.4 (2026-07-18), 1.1.20 (2026-08-25)
 probe-version: 1.1.4
 probe-date: 2026-07-18
 ---
@@ -445,11 +451,10 @@ page in depth.
   (`agy --help` output 2026-07-18)
 - **⚠️ PRINT-MODE ERROR SEMANTICS CHANGED — the dispatcher's fail-closed
   check may no longer fire (1.1.18 / 1.1.20).** `[VOLATILE]`
-  ⚠️ **`low-confidence` — 1.1.20 is NOT the installed version.** Installed
-  is **1.1.19**; the 1.1.20 claims below are changelog-sourced and could
-  not be executed here, per
-  [`refresh-vendor.md`](../../protocols/refresh-vendor.md) §"Executable
-  claims must be verified by execution".
+  **Verified by execution 2026-08-25** — 1.1.20 is now the installed
+  binary and the probe confirmed the denial-exit behavior directly (a
+  permission-denied run exited 0). The prior `low-confidence` tag
+  (placed when 1.1.19 was installed) is retired for THIS claim.
   **1.1.20** fixed print mode "treating benign tool execution errors and
   **permission denials** as fatal run failures with non-zero exit
   codes", so headless exit codes now "reflect only cascade-level
@@ -458,13 +463,17 @@ page in depth.
   **Why this matters here:**
   [`cross-vendor-review.sh`](../../../scripts/cross-vendor-review.sh)
   detects a denied tool request by **grepping the output text** for
-  permission-denial phrasing and refusing the review. If a permission
-  denial is no longer surfaced the same way — or no longer aborts the
-  run at all — that grep can silently stop matching, and a review that
-  hit tool denials would be **accepted instead of refused**. The safety
-  property was established against **1.1.4**; installed is **1.1.19**.
-  **Re-run the write-refusal probe and re-check the grep contract before
-  the next Antigravity dispatch.** (`agy changelog` 1.1.18 / 1.1.20)
+  permission-denial phrasing and refusing the review.
+  **RESOLVED 2026-08-25 — probe re-run on installed 1.1.20:** the
+  write refusal holds (tool and shell arms both auto-denied, sentinel
+  absent), the 1.1.20 denial phrasing still matches the dispatcher's
+  regex, and a benign control does not false-positive it. The
+  exit-code half of the concern is CONFIRMED REAL: the denial exited
+  **0**, so exit-status detection would never fire — the text grep is
+  the only working mechanism and must be re-verified on every version
+  bump (the dispatcher's probe-version gate enforces exactly that).
+  Probe record in this file's frontmatter. (three-arm probe 2026-08-25,
+  binary 1.1.20)
 - **⚠️ Valueless-flag prompt bug (fixed 1.1.18) — sandbox could be
   silently OFF.** Before 1.1.18, `agy --print --sandbox 'do the task'`
   ran with the prompt `--sandbox` and **the sandbox disabled**; a stray
@@ -475,8 +484,9 @@ page in depth.
   **Recommend raising the dispatcher floor to ≥1.1.18.** `[MEDIUM]`
   (`agy changelog` 1.1.18)
 - **Workspace read auto-granted under default review mode (1.1.20).**
-  `low-confidence` — 1.1.20 is not the installed version (1.1.19), so
-  this is changelog-sourced only. Read/list within the workspace root no
+  `low-confidence` — 1.1.20 is now installed (2026-08-25) but this
+  claim remains **untested**: the probe ran strict mode, not default
+  review mode. Changelog-sourced until a default-mode probe runs. Read/list within the workspace root no
   longer prompts; modification and external access still confirm. If it
   holds, it partially supersedes the "strict mode did not honor read
   grants" finding from the 1.1.4 walk. `[MEDIUM]`
