@@ -27,14 +27,16 @@ don't.
 |---|---|---|---|---|---|---|
 | **Fable 5** | `claude-fable-5` | Most capable model — hardest reasoning, long-horizon autonomous agentic runs | $10 | $50 | 1M | **Distinct Claude-5-family model, a tier ABOVE Opus — NOT a fast mode of Opus.** Thinking is always-on (cannot be disabled). Access + burn-rate below. `[VOLATILE]` |
 | **Mythos 5** | `claude-mythos-5` | Same tier / capability as Fable 5 | $10 | $50 | 1M | Project Glasswing only; successor to the invitation-only `claude-mythos-preview`. Same pricing + API surface as Fable 5. `[VOLATILE]` |
-| **Opus 4.8** | `claude-opus-4-8` | Top of the Opus line — long-horizon planning, complex multi-file refactors, ambiguous judgment calls | $5 | $25 | 1M | Most capable **Opus**; Fable / Mythos sit above it. `/fast`-capable (see note). `[VOLATILE]` |
-| **Opus 4.7** | `claude-opus-4-7` | Previous-generation Opus; same use cases as 4.8 | $5 | $25 | 1M | Version-pinned production / reproducibility. `/fast`-capable. `[VOLATILE]` |
-| **Sonnet 5** | `claude-sonnet-5` | Default for agentic-coding work; code review at depth; structured output | $3 ($2 intro thru 2026-08-31) | $15 ($10 intro) | 1M | The workhorse; near-Opus quality on coding / agentic. `[VOLATILE]` |
-| **Sonnet 4.6** | `claude-sonnet-4-6` | Previous-generation Sonnet | $3 | $15 | 1M | Version-pinned / reproducibility. `[VOLATILE]` |
+| **Opus 5** | `claude-opus-5` | Complex agentic coding + enterprise work; **current default Opus** in Claude Code (v2.1.219+) | $5 | $25 | 1M | Top of the Opus line. Fable sits above it. 128K max output; adaptive thinking; default effort `high`; knowledge cutoff May 2026. `/fast`-capable — ⚠️ fast mode bills at **$10/$50**, not the $5/$25 base. `[VOLATILE]` |
+| **Opus 4.8** | `claude-opus-4-8` | Prior-generation Opus | $5 | $25 | 1M | **Legacy (still available).** `/fast`-capable. `[VOLATILE]` |
+| **Opus 4.7** | `claude-opus-4-7` | Prior-generation Opus | $5 | $25 | 1M | **Legacy (still available).** Version-pinned reproducibility. **No longer `/fast`-capable** (removed v2.1.219). `[VOLATILE]` |
+| **Sonnet 5** | `claude-sonnet-5` | Default for agentic-coding work; code review at depth; structured output | $2 | $10 | 1M | The workhorse; near-Opus quality on coding / agentic. $2/$10 is now the **standard list price**, not an intro rate (corrected 2026-08-25). 128K max output. `[VOLATILE]` |
+| **Sonnet 4.6** | `claude-sonnet-4-6` | Prior-generation Sonnet | $3 | $15 | 1M | **Legacy (still available).** Version-pinned / reproducibility. `[VOLATILE]` |
 | **Haiku 4.5** | `claude-haiku-4-5` | Simple text generation, classification, lightweight summarization, high-throughput batch | $1 | $5 | 200K | When the task is bounded and the answer is short. `[VOLATILE]` |
 
 **Fast mode (`/fast`) is NOT a model.** It is a research-preview
-output-speed toggle for **Opus 4.8 / 4.7 only** — the *same* Opus model
+output-speed toggle for **Opus 5 / Opus 4.8** (4.7 removed v2.1.219) —
+the *same* Opus model
 run at up to ~2.5× output tokens/sec at premium pricing; it does NOT
 downgrade to a smaller model, and it has nothing to do with Fable 5
 (a separate, more-capable model). API surface: `speed: "fast"` + beta
@@ -87,6 +89,31 @@ table, cached 2026-06-24)
 | **Antigravity (`agy`)** | Agentic-coding via CLI; cross-vendor review peer | varies | Google's coding CLI. Headless via `agy --print`. `[VOLATILE]` |
 
 **Source:** [ai.google.dev/pricing](https://ai.google.dev/pricing)
+
+## PENDING — vendor-neutral tier restructure (opened 2026-08-25)
+
+The **Model selection heuristics** table below is Claude-shaped: it names
+Claude tiers (`Sonnet-tier`, `Haiku-tier`, `Opus-tier`), which do not
+resolve on Codex CLI or Antigravity. It also has **no row for search /
+retrieval / fan-out** — the task shape most likely to inherit an
+expensive model by default.
+
+Deferred deliberately (supervisor decision, 2026-08-25): restructure to
+vendor-neutral tiers (`frontier` / `workhorse` / `light`) with a
+per-vendor mapping, and fill the OpenAI (`varies` placeholders) and
+Google (single row, no models — `agy models` enumerates 14 live) tables,
+**after** the `/refresh-vendor codex` and `/refresh-vendor antigravity`
+walks land, so all model drift folds into one pass rather than three.
+
+Until then this file governs Claude model selection only, and the
+heuristics table below should not be cited for peer vendors.
+
+**`last-verified` deliberately NOT bumped (2026-08-25).** The Anthropic
+rows were corrected in this session (Opus 5 added, Sonnet 5 repriced,
+`/fast` scope), but the OpenAI and Google sections were **not**
+re-verified. Bumping the date would reset this file's own 60-day
+staleness trigger and suppress the walk those sections need. The date
+stays at the last full walk; per-row corrections are dated inline.
 
 ## Model selection heuristics
 

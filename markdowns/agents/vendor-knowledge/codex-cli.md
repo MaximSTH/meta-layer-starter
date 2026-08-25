@@ -164,13 +164,19 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   nesting (docs caution against it: token/latency/resource cost).
   `[STABLE]`
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
-  **Cross-vendor head-to-head (both halves verified 2026-07-18):** Codex
-  default `max_depth=1`, **raisable** via config, `max_threads=6`; Claude
-  Code nests to a **fixed depth 5** (v2.1.172, not configurable), 200
-  subagents/session. Both do parallel fan-out — they differ on default
-  nesting depth (Codex 1 vs Claude 5) and configurability (Codex
-  raisable, Claude fixed). See [`claude-code.md`](claude-code.md) §3.
-  Both pending markers (this file + claude-code.md §10) are now retired.
+  ⚠️ **Cross-vendor head-to-head RETIRED 2026-08-25 — do not cite the
+  old framing.** It read "Codex default 1, raisable vs Claude **fixed
+  depth 5**, 200 subagents/session". The Claude half is now
+  verified-false: Claude Code defaults to depth **3**, is configurable
+  (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`), and its 200-per-session cap
+  was **removed** in v2.1.224. Only the Claude half is established; no
+  replacement comparison is asserted here, because the Codex half below
+  has not been re-verified at 0.144.5.
+  **PENDING:** the Codex numbers above (`max_depth=1`, `max_threads=6`)
+  were last verified 2026-07-18 against binary **0.139.0**; the
+  installed binary is now **0.144.5**. Rebuild the head-to-head during
+  the next `/refresh-vendor codex` walk, once the Codex half is
+  re-verified. See [`claude-code.md`](claude-code.md) §3 / §10.
 - **Delegation modes (0.142.0+) — explicit-request-only by default.**
   Multi-agent delegation is configurable per thread/turn as **disabled /
   explicit-request-only / proactive**. The default posture is
@@ -512,11 +518,14 @@ limited Codex CLI access. `[STABLE]`
   prior "no first-party skills primitive" gap (carried through the
   2026-06-10 walk) is closed as of 2026-06-20. `[MEDIUM]`
   ([learn.chatgpt.com/docs/build-skills](https://learn.chatgpt.com/docs/build-skills))
-- **Subagent depth capped at 1 by default** (`max_depth=1`, re-verified
-  2026-07-18; raisable via config). Cross-vendor: Codex default depth 1
-  (raisable) vs Claude Code fixed depth 5 (v2.1.172) — both do parallel
-  fan-out; see the rebuilt head-to-head in §3. Both pending markers
-  (this file + `claude-code.md` §10) are now **retired**. `[STABLE]`
+- **Subagent depth capped at 1 by default** (`max_depth=1`, last
+  verified 2026-07-18 against binary 0.139.0; raisable via config).
+  ⚠️ The cross-vendor comparison that sat here is **retired** — the
+  Claude half ("fixed depth 5") is verified-false as of 2026-08-25
+  (Claude is now default-3 and configurable, per-session cap removed).
+  **PENDING:** re-verify the Codex half at 0.144.5 and rebuild the
+  head-to-head in §3 during the next `/refresh-vendor codex` walk.
+  `[STABLE]`
 - **Hooks default-on since ~0.13x** (canonical flag key `hooks`,
   deprecated alias `codex_hooks`). The old "flag required, silent
   failure" gap is resolved; only relevant if a config explicitly sets
