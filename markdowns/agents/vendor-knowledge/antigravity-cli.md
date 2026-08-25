@@ -17,8 +17,10 @@ last-verified: 2026-08-25
 headless-write-probe: passed
 headless-write-probe-verified-on: 1.1.20
 headless-write-probe-history: 1.1.4 (2026-07-18), 1.1.20 (2026-08-25)
-probe-version: 1.1.4
-probe-date: 2026-07-18
+# (The legacy `probe-version` / `probe-date` keys from the 2026-07-18 walk
+# are retired — superseded by the headless-write-probe-* keys above; their
+# information lives in the history line. Flagged by the Antigravity peer
+# review 2026-08-25 as schema ambiguity.)
 ---
 
 # Antigravity CLI — vendor knowledge
