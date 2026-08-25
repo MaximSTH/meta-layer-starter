@@ -107,6 +107,12 @@ agent should be able to find.
   (the `/doc-consistency` skill walks it).
 - **Frontend / UX.** When building or editing anything visual, do proper UX
   research. Never ship UI changes without considering the user flow.
+- **Search / web-research delegation.** Delegate web research and broad
+  searches to the `web-research` / `Explore` agents where defined
+  (Claude: [`.claude/agents/`](.claude/agents/)) rather than searching
+  inline — they carry the model pin per the search/fan-out row in
+  [`markdowns/agents/model-capabilities.md`](markdowns/agents/model-capabilities.md).
+  Harmless on vendors without those agents.
 - **Audits.** Be deeply thorough on first pass. Check every rule, every
   mapping. Never say "looks clean" without verifying.
 - **Session briefs.** Every session that runs cross-vendor review saves its
