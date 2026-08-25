@@ -67,6 +67,12 @@ RUBRIC_BODY=$(awk '
   inside && fence         { print }
 ' "$RUBRIC")
 
+# Fill the rubric's authoring-time placeholders. Left unfilled, every
+# review opens by flagging "<PR-URL> / <protocol-file> §<N> unresolved"
+# (both 2026-08-25 reviews did) — noise that buries real findings.
+RUBRIC_BODY=${RUBRIC_BODY//<PR-URL>/$TARGET}
+RUBRIC_BODY=${RUBRIC_BODY//<protocol-file> §<N>/"the rubric below (and the brief, if provided)"}
+
 if [ -z "$RUBRIC_BODY" ]; then
   echo "Error: could not extract rubric body from $RUBRIC." >&2
   echo "Expected delimiters: <!-- RUBRIC START --> ... <!-- RUBRIC END --> around a fenced code block." >&2
@@ -129,6 +135,10 @@ case "$TO" in
     # launch directory's .claude/settings.json hooks and connects its
     # .mcp.json servers with no trust dialog. (--bare would close it too
     # but forces API-key auth, breaking subscription dispatch.)
+    # BEHAVIORALLY PROBED 2026-08-25 (v2.1.220), both arms: a scratch
+    # project with a sentinel SessionStart hook — plain `-p` created the
+    # sentinel (exposure demonstrated); `--safe-mode` did not, and the
+    # run completed under subscription OAuth. Not help-text-sourced.
     # --model sonnet: Tier 1/2 review is Sonnet-tier per
     # markdowns/agents/model-capabilities.md heuristics — do not inherit
     # the operator's session model. </dev/null: never leave a vendor CLI
