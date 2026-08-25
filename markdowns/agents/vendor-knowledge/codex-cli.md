@@ -221,12 +221,23 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   | Global subagent-model default | **none** (binary rejects `agents.default_subagent_model`) | **none** (no such setting) |
 
   **The load-bearing difference is no longer depth — it is delegation
-  posture.** Codex only spawns subagents on an explicit request, so an
+  posture.** Codex spawns subagents only on an explicit request, so an
   unpinned expensive model has a bounded blast radius. Claude Code
-  auto-routes by description match *and* inherits the session model, so
-  an unpinned Claude subagent fleet is the higher cost exposure.
-  Neither vendor offers a global subagent-model default; both require
-  per-agent pinning. See [`claude-code.md`](claude-code.md) §3 / §10.
+  auto-routes by description match *and* inherits the session model.
+  ⚠️ **Scope of this conclusion:** the evidence supports *greater
+  automatic fan-out exposure under documented defaults* — it does not
+  establish an absolute cost ranking, which additionally depends on
+  per-model prices, workload shape, real routing behavior, and local
+  configuration. No delegate-and-observe test was run on either
+  vendor.
+  Neither vendor offers a global subagent-model default. Per-agent
+  pinning is the **documented** mechanism on both, but note the
+  asymmetry in evidence: Claude Code's `model:` frontmatter is
+  docs-confirmed, while whether the Codex binary actually **honors**
+  `model` in an agent TOML remains unverified (see the
+  `low-confidence` bullet above). Do not treat "both require per-agent
+  pinning" as an established capability on the Codex side.
+  See [`claude-code.md`](claude-code.md) §3 / §10.
 - **Delegation modes (0.142.0+) — explicit-request-only by default.**
   Multi-agent delegation is configurable per thread/turn as **disabled /
   explicit-request-only / proactive**. The default posture is
@@ -244,7 +255,11 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   ([github.com/openai/codex/releases](https://github.com/openai/codex/releases))
 - **Job timeout:** `agents.job_max_runtime_seconds` caps per-worker
   runtime — **default 1800 s** when unset; relevant when using
-  subagents for CSV batch jobs. `[MEDIUM]`
+  subagents for CSV batch jobs. **Key existence binary-confirmed at
+  0.144.5** by the same `--strict-config` discriminator used for
+  `max_depth` / `max_threads` (accepted as a scalar rather than
+  rejected as `expected struct AgentRoleToml`); the *default value*
+  1800 remains docs-sourced. `[MEDIUM]`
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
 - **Display + batch extras:** optional `nickname_candidates` field
   gives spawned agents readable display names; experimental
@@ -305,7 +320,7 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   ([learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks))
 - **Vendor coupling:** event names overlap conceptually with Claude Code's
   set (`SessionStart`, `PreToolUse`, `PostToolUse`, `UserPromptSubmit`,
-  `Stop`) but are NOT a 1:1 superset. Claude Code exposes 30 events;
+  `Stop`) but are NOT a 1:1 superset. Claude Code exposes 31 events (as of v2.1.219);
   Codex ~10. Cross-vendor parity is per-event translation, not a shared
   set. `[STABLE]`
 - **Repo posture:** hooks stay Claude-only by default. Codex hooks

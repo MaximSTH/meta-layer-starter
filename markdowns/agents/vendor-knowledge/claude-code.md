@@ -620,10 +620,14 @@ usage limits. See the Agent SDK bullet below.**
   total cap was removed while Codex documents none.
   **The load-bearing difference is delegation posture.** Codex spawns
   subagents only on explicit request; Claude Code auto-routes by
-  description match *and* inherits the session model — so an unpinned
-  Claude subagent fleet is the larger cost exposure of the two. Neither
-  vendor offers a global subagent-model default; both require per-agent
-  pinning. Full table in [`codex-cli.md`](codex-cli.md) §3. `[MEDIUM]`
+  description match *and* inherits the session model — so Claude has the
+  greater **automatic fan-out exposure under documented defaults**. That
+  is a statement about fan-out, not an absolute cost ranking: actual
+  cost also depends on model prices, workload, real routing behavior and
+  local config, and no delegate-and-observe test was run. Neither vendor
+  offers a global subagent-model default; per-agent pinning is the
+  documented mechanism on both, though whether Codex honors it is
+  unverified. Full table in [`codex-cli.md`](codex-cli.md) §3. `[MEDIUM]`
 - **`AGENTS.md` not native:** if Claude Code ships native support, the
   pre-commit duplicate-and-sync hook becomes redundant. Track via
   Issue #34235. Interim: Anthropic now officially documents a
