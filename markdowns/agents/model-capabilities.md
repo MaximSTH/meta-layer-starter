@@ -2,7 +2,8 @@
 name: model-capabilities
 description: Per-model capability + cost reference. Drives the agent's model-selection decisions for tasks where the harness exposes a model selector — direct API calls from product code, SDK model selection in batch jobs, or per-CLI model flags when documented in the vendor-knowledge file. Walked weekly by /refresh-vendor.
 status: reference
-last-verified: 2026-07-18
+last-verified: 2026-08-25
+google-rates-last-verified: 2026-07-18  # component clock — inventory re-verified 2026-08-25, per-Mtok rates NOT
 ---
 
 # Model capabilities
@@ -77,63 +78,106 @@ table, cached 2026-06-24)
 | Model | Best for | Cost tier | Notes |
 |---|---|---|---|
 | **Codex** | Agentic-coding via CLI (`codex exec`); structured output | medium | The CLI binary is what we call into via `cross-vendor-review.sh`. Runs the GPT-5.x family under the hood. `[VOLATILE]` |
-| **GPT-5.6** (Sol / Terra / Luna) | Current top OpenAI generation — direct API calls from product code (non-Codex usage) | varies | Newest family as of this walk (surfaced in the 2026-07-18 codex-cli walk); GPT-5.3-Codex-Spark is a research-preview variant. `[VOLATILE]` |
-| **GPT-5.5 / GPT-5.4 / GPT-5.4-mini** | Prior-generation direct API usage | varies | Still selectable; check vendor pricing page. `[VOLATILE]` |
+| **GPT-5.6 Sol** | Top OpenAI tier | $4 in / $20 out ($8/$30 long-ctx) | Also on Bedrock with first-class `max` reasoning effort (codex 0.144.5 walk). `[VOLATILE]` |
+| **GPT-5.6 Terra** | OpenAI workhorse | $2 / $12 ($4/$18 long-ctx) | `[VOLATILE]` |
+| **GPT-5.6 Luna** | OpenAI light tier | $0.20 / $1.20 ($0.40/$1.80 long-ctx) | `[VOLATILE]` |
+| **GPT-5.5 / 5.4 / 5.4-Mini / 5.4-Nano** | Prior-generation | $5/$30 · $2.50/$15 · $0.75/$4.50 · $0.20/$1.25 | 272K ctx on 5.5/5.4; Pro variants $30/$180. GPT-5.3-Codex-Spark research preview. `[VOLATILE]` |
 
-**Source:** [platform.openai.com/docs/pricing](https://platform.openai.com/docs/pricing)
+**Source:** [developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing)
+(platform.openai.com/docs/pricing 301-redirects there; verified by fetch 2026-08-25)
 
 ## Google — model selection
 
 | Model | Best for | Cost tier | Notes |
 |---|---|---|---|
-| **Antigravity (`agy`)** | Agentic-coding via CLI; cross-vendor review peer | varies | Google's coding CLI. Headless via `agy --print`. `[VOLATILE]` |
+| **Antigravity (`agy`)** | Agentic-coding via CLI; cross-vendor review peer | varies | Google's coding CLI. Headless via `agy --print` — ⚠️ review dispatch hard-blocked pending probe re-run ([`antigravity-cli.md`](vendor-knowledge/antigravity-cli.md) §9). `[VOLATILE]` |
+| **Gemini 3.7 / 3.6 / 3.5 Flash** (`gemini-3.x-flash-{high,medium,low}`) | Workhorse→light band; effort baked into the model ID | rates not re-verified | `agy models`, binary 1.1.19, 2026-08-25. `[VOLATILE]` |
+| **Gemini 3.1 Pro** (`gemini-3.1-pro-{high,low}`) | Google frontier tier | rates not re-verified | Same channel. `[VOLATILE]` |
+| **Brokered non-Google** (`claude-sonnet-4-6`, `claude-opus-4-6-thinking`, `gpt-oss-120b-medium`) | Cross-vendor access through one CLI | n/a | Antigravity serves peer-vendor models — CLI choice ≠ model family. `[VOLATILE]` |
 
 **Source:** [ai.google.dev/pricing](https://ai.google.dev/pricing)
 
-## PENDING — vendor-neutral tier restructure (opened 2026-08-25)
+## Vendor-neutral capability tiers (restructured 2026-08-25)
 
-The **Model selection heuristics** table below is Claude-shaped: it names
-Claude tiers (`Sonnet-tier`, `Haiku-tier`, `Opus-tier`), which do not
-resolve on Codex CLI or Antigravity. It also has **no row for search /
-retrieval / fan-out** — the task shape most likely to inherit an
-expensive model by default.
+Task heuristics name a **tier**, never a vendor's model. The per-vendor
+mapping below resolves each tier to a concrete pick. One heuristics
+table governs all harness vendors; adding a vendor adds a mapping row,
+not a rewrite. (Replaces the Claude-shaped table this file carried
+until 2026-08-25; a Grok column waits on the
+[deferred admission](grok-admission-analysis.md).)
 
-Deferred deliberately (supervisor decision, 2026-08-25): restructure to
-vendor-neutral tiers (`frontier` / `workhorse` / `light`) with a
-per-vendor mapping, and fill the OpenAI (`varies` placeholders) and
-Google (single row, no models — `agy models` enumerates 14 live) tables,
-**after** the `/refresh-vendor codex` and `/refresh-vendor antigravity`
-walks land, so all model drift folds into one pass rather than three.
+**Verification note (2026-08-25):** Anthropic rows re-verified against
+the platform models overview; OpenAI against the pricing page (by
+fetch); Google model *inventory* against the `agy models` binary
+channel. **Google per-Mtok *rates* were NOT re-verified** — they keep
+their own component clock (`google-rates-last-verified` in the
+frontmatter, still 2026-07-18) so the file-level date bump cannot
+suppress the refresh their staleness will owe. Treat the file-level
+`last-verified` as covering everything except that component.
 
-Until then this file governs Claude model selection only, and the
-heuristics table below should not be cited for peer vendors.
+| Tier | Meaning |
+|---|---|
+| **frontier** | Hardest reasoning, long-horizon judgment, ambiguity. Expensive; use deliberately. |
+| **workhorse** | Coding, review-at-depth, synthesis, structured output. The default. |
+| **light** | Search, retrieval, fan-out, classification, extraction, summarization. Cheap, fast, high-volume. |
 
-**`last-verified` deliberately NOT bumped (2026-08-25).** The Anthropic
-rows were corrected in this session (Opus 5 added, Sonnet 5 repriced,
-`/fast` scope), but the OpenAI and Google sections were **not**
-re-verified. Bumping the date would reset this file's own 60-day
-staleness trigger and suppress the walk those sections need. The date
-stays at the last full walk; per-row corrections are dated inline.
+### Per-vendor tier mapping
+
+| Tier | Claude (API/Code) | OpenAI (via Codex / API) | Google (via `agy`) |
+|---|---|---|---|
+| frontier | Fable 5 · Opus 5 | GPT-5.6 Sol | `gemini-3.1-pro-high` |
+| workhorse | Sonnet 5 | GPT-5.6 Terra | `gemini-3.7-flash-high` / `-medium` |
+| light | Haiku 4.5 · Sonnet 5 at low effort | GPT-5.6 Luna · GPT-5.4-Mini | `gemini-3.7-flash-low` |
+
+Prices deliberately NOT restated here — the per-vendor model tables
+above are the SSOT for rates (per the AGENTS.md "SSOT for shared
+values" rule); this mapping names models only.
+
+Mapping notes: OpenAI rates are short-context standard tier from
+[developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing)
+(long-context roughly doubles input). Google column: `agy models`
+(binary channel, agy 1.1.19) — **effort is baked into the model ID**
+(`-high|-medium|-low` suffixes), and Antigravity also **brokers
+non-Google models** (`claude-sonnet-4-6`, `claude-opus-4-6-thinking`,
+`gpt-oss-120b-medium`), so "which vendor CLI" and "which model family"
+are independent axes there. Google per-Mtok rates: `[VOLATILE]`, see
+[ai.google.dev/pricing](https://ai.google.dev/pricing).
 
 ## Model selection heuristics
 
 When the harness lets you pick, use these defaults rather than
 defaulting to the most expensive available model:
 
-| Task shape | Default model |
+| Task shape | Tier |
 |---|---|
-| Code review on a Tier 1 / Tier 2 PR | Sonnet-tier (depth) |
-| Code review on a Tier 3 PR | Haiku-tier (speed) |
-| Long-horizon plan authoring | Opus-tier (judgment) |
-| Routine implementation from a clear plan | Sonnet-tier |
-| High-volume classification / extraction / summarization | Haiku-tier (cost) |
-| Vision tasks (image content extraction) | Sonnet-tier or higher (per docs) |
-| Ambiguous "I don't know what this means" | Opus-tier (judgment) |
+| **Search / retrieval / fan-out (file search, web search, broad sweeps)** | **light** — and pin it in the agent definition, don't rely on the operator remembering. Claude's current pin is Sonnet @ `effort: medium` — by this table's definitions a **workhorse** pin, deliberately one notch above the light default per explicit supervisor directive ("use Sonnet for websearch subagents", 2026-08-25). Strict light (Haiku, or Sonnet @ low) is a two-line frontmatter edit in [`.claude/agents/`](../../.claude/agents/) if search spend warrants it. Verification canonical in [`claude-code.md`](vendor-knowledge/claude-code.md) §3. |
+| Code review on a Tier 1 / Tier 2 PR | workhorse (depth) |
+| Code review on a Tier 3 PR | light (speed) |
+| Long-horizon plan authoring | frontier (judgment) |
+| Routine implementation from a clear plan | workhorse |
+| High-volume classification / extraction / summarization | light (cost) |
+| Vision tasks (image content extraction) | workhorse or higher (per docs) |
+| Ambiguous "I don't know what this means" | frontier (judgment) |
 
-**Escalation rule:** if a Haiku-tier call produces output that doesn't
-pass the consumer's quality bar, retry once at Sonnet-tier before
-escalating to human. Don't escalate to Opus-tier directly unless the
+**Escalation rule:** if a light-tier call produces output that doesn't
+pass the consumer's quality bar, retry once at workhorse before
+escalating to human. Don't escalate to frontier directly unless the
 failure mode suggests judgment ambiguity (not capability ambiguity).
+
+**Enforcement status by vendor (2026-08-25):** Claude — **pinned at
+workhorse (Sonnet @ medium), a supervisor-directed notch above the
+light default** — the guardrail's purpose (stop inheriting
+frontier-tier Opus/Fable into search fan-out) is met; strictly-light
+enforcement is available but not currently chosen (pinned agent files;
+canonical record in
+[`claude-code.md`](vendor-knowledge/claude-code.md) §3). Codex — NOT
+enforced: per-agent `model` is docs-only and headless delegation did
+not spawn even on explicit request
+([`codex-cli.md`](vendor-knowledge/codex-cli.md) §3); exposure low
+(explicit-request-only delegation). Antigravity — NOT enforced:
+`model`/`inherit` changelog-indicated only, agent-definition location
+undocumented, dispatch hard-blocked pending probe re-run
+([`antigravity-cli.md`](vendor-knowledge/antigravity-cli.md) §9).
 
 ## When this file is stale
 
