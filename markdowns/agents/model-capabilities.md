@@ -3,6 +3,7 @@ name: model-capabilities
 description: Per-model capability + cost reference. Drives the agent's model-selection decisions for tasks where the harness exposes a model selector — direct API calls from product code, SDK model selection in batch jobs, or per-CLI model flags when documented in the vendor-knowledge file. Walked weekly by /refresh-vendor.
 status: reference
 last-verified: 2026-08-25
+google-rates-last-verified: 2026-07-18  # component clock — inventory re-verified 2026-08-25, per-Mtok rates NOT
 ---
 
 # Model capabilities
@@ -108,9 +109,11 @@ until 2026-08-25; a Grok column waits on the
 **Verification note (2026-08-25):** Anthropic rows re-verified against
 the platform models overview; OpenAI against the pricing page (by
 fetch); Google model *inventory* against the `agy models` binary
-channel. Google per-Mtok *rates* were NOT re-verified and stay flagged
-inline — the earlier partial-verification hold on `last-verified` is
-lifted by this full pass.
+channel. **Google per-Mtok *rates* were NOT re-verified** — they keep
+their own component clock (`google-rates-last-verified` in the
+frontmatter, still 2026-07-18) so the file-level date bump cannot
+suppress the refresh their staleness will owe. Treat the file-level
+`last-verified` as covering everything except that component.
 
 | Tier | Meaning |
 |---|---|
@@ -122,9 +125,13 @@ lifted by this full pass.
 
 | Tier | Claude (API/Code) | OpenAI (via Codex / API) | Google (via `agy`) |
 |---|---|---|---|
-| frontier | Fable 5 ($10/$50) · Opus 5 ($5/$25) | GPT-5.6 Sol ($4/$20) | `gemini-3.1-pro-high` |
-| workhorse | Sonnet 5 ($2/$10) | GPT-5.6 Terra ($2/$12) | `gemini-3.7-flash-high` / `-medium` |
-| light | Haiku 4.5 ($1/$5) · Sonnet 5 at low effort | GPT-5.6 Luna ($0.20/$1.20) · GPT-5.4-Mini ($0.75/$4.50) | `gemini-3.7-flash-low` |
+| frontier | Fable 5 · Opus 5 | GPT-5.6 Sol | `gemini-3.1-pro-high` |
+| workhorse | Sonnet 5 | GPT-5.6 Terra | `gemini-3.7-flash-high` / `-medium` |
+| light | Haiku 4.5 · Sonnet 5 at low effort | GPT-5.6 Luna · GPT-5.4-Mini | `gemini-3.7-flash-low` |
+
+Prices deliberately NOT restated here — the per-vendor model tables
+above are the SSOT for rates (per the AGENTS.md "SSOT for shared
+values" rule); this mapping names models only.
 
 Mapping notes: OpenAI rates are short-context standard tier from
 [developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing)
@@ -143,7 +150,7 @@ defaulting to the most expensive available model:
 
 | Task shape | Tier |
 |---|---|
-| **Search / retrieval / fan-out (file search, web search, broad sweeps)** | **light** — and pin it in the agent definition, don't rely on the operator remembering. Claude enforcement: [`.claude/agents/`](../../.claude/agents/) (Explore + web-research, Sonnet-pinned; verification canonical in [`claude-code.md`](vendor-knowledge/claude-code.md) §3) |
+| **Search / retrieval / fan-out (file search, web search, broad sweeps)** | **light** — and pin it in the agent definition, don't rely on the operator remembering. Claude's current pin is Sonnet @ `effort: medium` — by this table's definitions a **workhorse** pin, deliberately one notch above the light default per explicit supervisor directive ("use Sonnet for websearch subagents", 2026-08-25). Strict light (Haiku, or Sonnet @ low) is a two-line frontmatter edit in [`.claude/agents/`](../../.claude/agents/) if search spend warrants it. Verification canonical in [`claude-code.md`](vendor-knowledge/claude-code.md) §3. |
 | Code review on a Tier 1 / Tier 2 PR | workhorse (depth) |
 | Code review on a Tier 3 PR | light (speed) |
 | Long-horizon plan authoring | frontier (judgment) |
@@ -157,8 +164,12 @@ pass the consumer's quality bar, retry once at workhorse before
 escalating to human. Don't escalate to frontier directly unless the
 failure mode suggests judgment ambiguity (not capability ambiguity).
 
-**Enforcement status by vendor (2026-08-25):** Claude — enforced
-(pinned agent files; canonical record in
+**Enforcement status by vendor (2026-08-25):** Claude — **pinned at
+workhorse (Sonnet @ medium), a supervisor-directed notch above the
+light default** — the guardrail's purpose (stop inheriting
+frontier-tier Opus/Fable into search fan-out) is met; strictly-light
+enforcement is available but not currently chosen (pinned agent files;
+canonical record in
 [`claude-code.md`](vendor-knowledge/claude-code.md) §3). Codex — NOT
 enforced: per-agent `model` is docs-only and headless delegation did
 not spawn even on explicit request
