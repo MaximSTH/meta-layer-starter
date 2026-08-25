@@ -2,7 +2,7 @@
 name: vendor-knowledge-codex-cli
 description: Volatility-tagged knowledge of Codex CLI — canonical file (AGENTS.md native), skills, subagents, hooks, auth, rate limits, cost, MCP, headless. Drives cross-vendor scripts and /refresh-vendor.
 status: reference
-last-verified: 2026-07-18
+last-verified: 2026-08-25
 ---
 
 # Codex CLI — vendor knowledge
@@ -45,6 +45,16 @@ Each claim's tag describes how often the underlying content tends to change:
 - **`[STABLE]`** — major version bumps only (rare).
 - **`[MEDIUM]`** — minor version bumps or quarterly cadence.
 - **`[VOLATILE]`** — monthly or faster.
+
+### Verification boundary (2026-08-25 walk)
+
+Binary channel is **0.144.5 installed** (the 2026-07-18 walk ran against
+0.139.0, so several previously docs-only claims are now executable).
+Where a claim was tested, the probe and its **control** are cited
+inline. Claims the binary could not discriminate — notably per-agent
+`model` pinning, because `AgentRoleToml` ignores unknown fields — are
+marked **`low-confidence`** per
+[`refresh-vendor.md`](../../protocols/refresh-vendor.md).
 
 A weekly calendar reminder triggers the cadence — when it fires, open Claude Code in the repo and type `/refresh-vendor <vendor>`. That supervised session walks every claim regardless of tier (Claude reads `last-verified` itself during step 2 of the protocol). The tiers inform per-claim re-tagging and form a ceiling on inter-walk gap: VOLATILE 60 days, MEDIUM 90 days, STABLE yearly.
 
@@ -153,30 +163,70 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
 - **File location:** TOML files at `.codex/agents/<name>.toml` (project) or
   `~/.codex/agents/<name>.toml` (personal). Required fields: `name`,
   `description`, `developer_instructions`. `[STABLE]`
+- **Per-subagent model pinning — docs YES, binary INCONCLUSIVE.**
+  `[MEDIUM]` `low-confidence` The subagents docs list `model` and
+  `model_reasoning_effort` as optional agent-file fields (plus
+  `sandbox_mode`, `mcp_servers`, `skills.config`), and state "you can
+  also include other supported `config.toml` keys in a custom agent
+  file." **The binary could not confirm it.** A `--strict-config` probe
+  at 0.144.5 accepted an inline `AgentRoleToml` carrying `model`, but
+  the **control carrying a nonsense field was accepted too** — the
+  struct ignores unknown fields, so acceptance proves nothing about
+  whether the key is honored. Treat as docs-sourced until a behavioral
+  test (delegate to a pinned agent, observe the model actually used)
+  runs. **This is the load-bearing claim for the cross-vendor model
+  guardrail — verify it before building on it.**
+  ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents),
+  `codex exec --strict-config` probe 2026-08-25)
+- **⚠️ `agents.default_subagent_model` does NOT exist at 0.144.5 —
+  docs contradicted by binary.** The docs page describes
+  `agents.default_subagent_model` and
+  `agents.default_subagent_reasoning_effort` as `[agents]` config keys.
+  The binary rejects both: `-c agents.default_subagent_model="…"` fails
+  with `invalid type: string, expected struct AgentRoleToml`, i.e. the
+  key is parsed as an *agent name* whose value must be a role struct.
+  Per the channel-reliability ordering, **the binary wins**. There is
+  therefore **no global subagent-model default** on Codex at this
+  version; pinning must be per-agent. `[MEDIUM]`
+  (`codex exec --strict-config -c agents.default_subagent_model=…`
+  probe 2026-08-25)
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
 - **Parallel spawn:** YES. `agents.max_threads` (in `[agents]` section of
   `config.toml`) caps concurrent subagent threads — **default 6** when
-  unset. `[STABLE]`
+  unset. **Key existence binary-confirmed at 0.144.5:** under
+  `--strict-config`, `-c agents.max_threads=6` is accepted while an
+  arbitrary `[agents]` key is rejected as `expected struct
+  AgentRoleToml` — so `max_threads` is a recognised scalar key, not an
+  agent name. (The *default value* 6 remains docs-sourced.) `[STABLE]`
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
-- **Nesting cap:** `agents.max_depth` defaults to **1** (re-verified
-  2026-07-18) — the root thread spawns direct children but children
-  can't spawn deeper descendants; raise the value to allow deeper
-  nesting (docs caution against it: token/latency/resource cost).
-  `[STABLE]`
+- **Nesting cap:** `agents.max_depth` defaults to **1** — the root
+  thread spawns direct children but children can't spawn deeper
+  descendants; raise the value to allow deeper nesting (docs caution
+  against it: token/latency/resource cost). **Key existence
+  binary-confirmed at 0.144.5** by the same `--strict-config`
+  discriminator as `max_threads` above; the *default value* 1 remains
+  docs-sourced. `[STABLE]`
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
-  ⚠️ **Cross-vendor head-to-head RETIRED 2026-08-25 — do not cite the
-  old framing.** It read "Codex default 1, raisable vs Claude **fixed
-  depth 5**, 200 subagents/session". The Claude half is now
-  verified-false: Claude Code defaults to depth **3**, is configurable
-  (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`), and its 200-per-session cap
-  was **removed** in v2.1.224. Only the Claude half is established; no
-  replacement comparison is asserted here, because the Codex half below
-  has not been re-verified at 0.144.5.
-  **PENDING:** the Codex numbers above (`max_depth=1`, `max_threads=6`)
-  were last verified 2026-07-18 against binary **0.139.0**; the
-  installed binary is now **0.144.5**. Rebuild the head-to-head during
-  the next `/refresh-vendor codex` walk, once the Codex half is
-  re-verified. See [`claude-code.md`](claude-code.md) §3 / §10.
+  **Cross-vendor head-to-head — REBUILT 2026-08-25** (both halves
+  re-verified; the PR #9 pending marker is retired). Fan-out shape:
+
+  | Axis | Codex CLI 0.144.5 | Claude Code 2.1.220 |
+  |---|---|---|
+  | Default nesting depth | **1** (`agents.max_depth`) | **3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`) |
+  | Depth configurable? | Yes | Yes |
+  | Concurrency cap | **6** (`agents.max_threads`) | **20** (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`) |
+  | Per-session total cap | none documented | **none** (200 cap removed v2.1.224) |
+  | Delegation default | **explicit-request-only** | **description-match auto-routing** |
+  | Per-agent model pinning | `model` in agent TOML (docs; binary inconclusive) | `model:` frontmatter, defaults `inherit` (docs-confirmed) |
+  | Global subagent-model default | **none** (binary rejects `agents.default_subagent_model`) | **none** (no such setting) |
+
+  **The load-bearing difference is no longer depth — it is delegation
+  posture.** Codex only spawns subagents on an explicit request, so an
+  unpinned expensive model has a bounded blast radius. Claude Code
+  auto-routes by description match *and* inherits the session model, so
+  an unpinned Claude subagent fleet is the higher cost exposure.
+  Neither vendor offers a global subagent-model default; both require
+  per-agent pinning. See [`claude-code.md`](claude-code.md) §3 / §10.
 - **Delegation modes (0.142.0+) — explicit-request-only by default.**
   Multi-agent delegation is configurable per thread/turn as **disabled /
   explicit-request-only / proactive**. The default posture is
@@ -466,6 +516,29 @@ limited Codex CLI access. `[STABLE]`
   `--local-provider <lmstudio|ollama>` (local model providers),
   `--strict-config`, `--color <always|never|auto>`. `[MEDIUM]`
   (binary `codex exec --help` 0.139.0)
+- **⚠️ `codex exec` READS STDIN even when the prompt is an argument.**
+  When stdin is not a TTY, `codex exec` appends stdin to the prompt and
+  **blocks waiting for EOF**, printing `Reading additional input from
+  stdin...`. It therefore works when a human runs it in a terminal and
+  **hangs forever** in CI, background jobs, or piped contexts unless the
+  caller closes stdin (`< /dev/null`). Found empirically 2026-08-25 when
+  [`cross-vendor-review.sh`](../../../scripts/cross-vendor-review.sh)
+  produced zero bytes across two runs totalling 11 minutes; the script
+  does not close stdin. `[MEDIUM]` (empirical, binary 0.144.5)
+- **`--strict-config` is the config-schema discriminator.** It rejects
+  unrecognised keys, which makes it the correct tool for verifying a
+  config claim by execution rather than by page-fetch. Caveat found
+  2026-08-25: it validates the **table** level but not inside
+  `AgentRoleToml` — a nonsense field inside an inline agent struct is
+  silently accepted, so it cannot confirm agent-file fields. `[MEDIUM]`
+  (empirical, binary 0.144.5)
+- **Global reasoning effort leaks into scripted calls.** `codex exec`
+  inherits `model_reasoning_effort` from `~/.codex/config.toml`
+  (`xhigh` on this machine), with no per-invocation default. A 553-line
+  diff review at `xhigh` exceeded 9 minutes. Scripted callers that need
+  predictable latency should pass
+  `-c model_reasoning_effort="medium"` explicitly. `[MEDIUM]`
+  (empirical, binary 0.144.5)
 - **Dangerous bypass flags — ⚠️ supervised-use-only.**
   `--dangerously-bypass-approvals-and-sandbox` skips ALL confirmation
   prompts and runs commands **without sandboxing** (only for externally
@@ -518,14 +591,13 @@ limited Codex CLI access. `[STABLE]`
   prior "no first-party skills primitive" gap (carried through the
   2026-06-10 walk) is closed as of 2026-06-20. `[MEDIUM]`
   ([learn.chatgpt.com/docs/build-skills](https://learn.chatgpt.com/docs/build-skills))
-- **Subagent depth capped at 1 by default** (`max_depth=1`, last
-  verified 2026-07-18 against binary 0.139.0; raisable via config).
-  ⚠️ The cross-vendor comparison that sat here is **retired** — the
-  Claude half ("fixed depth 5") is verified-false as of 2026-08-25
-  (Claude is now default-3 and configurable, per-session cap removed).
-  **PENDING:** re-verify the Codex half at 0.144.5 and rebuild the
-  head-to-head in §3 during the next `/refresh-vendor codex` walk.
-  `[STABLE]`
+- **Subagent depth capped at 1 by default** (`max_depth=1`; key
+  existence binary-confirmed at 0.144.5, default value docs-sourced;
+  raisable via config). The cross-vendor head-to-head is **rebuilt in
+  §3** as of 2026-08-25 and the pending marker is retired. Headline:
+  the meaningful asymmetry is **delegation posture** (Codex
+  explicit-request-only vs Claude description-match auto-routing), not
+  nesting depth. `[STABLE]`
 - **Hooks default-on since ~0.13x** (canonical flag key `hooks`,
   deprecated alias `codex_hooks`). The old "flag required, silent
   failure" gap is resolved; only relevant if a config explicitly sets
