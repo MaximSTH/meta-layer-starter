@@ -244,7 +244,11 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   ([github.com/openai/codex/releases](https://github.com/openai/codex/releases))
 - **Job timeout:** `agents.job_max_runtime_seconds` caps per-worker
   runtime — **default 1800 s** when unset; relevant when using
-  subagents for CSV batch jobs. `[MEDIUM]`
+  subagents for CSV batch jobs. **Key existence binary-confirmed at
+  0.144.5** by the same `--strict-config` discriminator used for
+  `max_depth` / `max_threads` (accepted as a scalar rather than
+  rejected as `expected struct AgentRoleToml`); the *default value*
+  1800 remains docs-sourced. `[MEDIUM]`
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
 - **Display + batch extras:** optional `nickname_candidates` field
   gives spawned agents readable display names; experimental
@@ -305,7 +309,7 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   ([learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks))
 - **Vendor coupling:** event names overlap conceptually with Claude Code's
   set (`SessionStart`, `PreToolUse`, `PostToolUse`, `UserPromptSubmit`,
-  `Stop`) but are NOT a 1:1 superset. Claude Code exposes 30 events;
+  `Stop`) but are NOT a 1:1 superset. Claude Code exposes 31 events (as of v2.1.219);
   Codex ~10. Cross-vendor parity is per-event translation, not a shared
   set. `[STABLE]`
 - **Repo posture:** hooks stay Claude-only by default. Codex hooks
