@@ -611,18 +611,19 @@ usage limits. See the Agent SDK bullet below.**
 - **Subagent → subagent nesting:** supported, **default depth 3 and
   configurable** via `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (see §3). No
   longer a Claude-side constraint on fan-out.
-  **Cross-vendor head-to-head — RETIRED. No replacement asserted.** The
-  prior framing (Claude "fixed depth 5, not configurable, 200/session"
-  vs Codex "default 1 but raisable") is withdrawn because its **Claude
-  half is verified-false**: Claude is default-3, configurable, and its
-  per-session cap is gone. **Only the Claude half is established as of
-  2026-08-25.** No current comparative claim is made here — the Codex
-  half was last verified 2026-07-18 against binary 0.139.0 while 0.144.5
-  is installed, so any "both vendors now…" statement would outrun the
-  evidence. ⚠️ **PENDING (opened 2026-08-25):** rebuild the head-to-head
-  during the next `/refresh-vendor codex` walk, once the Codex half is
-  re-verified; do not restate Codex numbers from this file until then.
-  See [`codex-cli.md`](codex-cli.md) §3. `[MEDIUM]`
+  **Cross-vendor head-to-head — REBUILT 2026-08-25** (pending marker
+  retired; both halves re-verified — Claude at binary v2.1.220, Codex at
+  binary 0.144.5). The old "Claude fixed depth 5 vs Codex raisable"
+  framing is gone: both vendors are configurable, and **depth is no
+  longer the interesting axis**. Claude nests 3 deep by default vs
+  Codex 1; Claude allows 20 concurrent vs Codex 6; Claude's per-session
+  total cap was removed while Codex documents none.
+  **The load-bearing difference is delegation posture.** Codex spawns
+  subagents only on explicit request; Claude Code auto-routes by
+  description match *and* inherits the session model — so an unpinned
+  Claude subagent fleet is the larger cost exposure of the two. Neither
+  vendor offers a global subagent-model default; both require per-agent
+  pinning. Full table in [`codex-cli.md`](codex-cli.md) §3. `[MEDIUM]`
 - **`AGENTS.md` not native:** if Claude Code ships native support, the
   pre-commit duplicate-and-sync hook becomes redundant. Track via
   Issue #34235. Interim: Anthropic now officially documents a
