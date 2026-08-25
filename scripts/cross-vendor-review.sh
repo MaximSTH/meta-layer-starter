@@ -111,14 +111,56 @@ ${BRIEF_SECTION}$RUBRIC_BODY
 
 Review the diff/path: $TARGET. Read it, then return the report."
 
+# Portable timeout: macOS ships no `timeout` binary. perl's alarm() is on
+# every supported platform. 900s covers the slowest observed review (a
+# 553-line diff at medium effort) with ample headroom; without a guard, a
+# hung vendor call blocks the pipeline forever (observed 2026-08-25: two
+# codex runs at 11 minutes producing zero bytes).
+REVIEW_TIMEOUT_SECS=900
+with_timeout() { perl -e 'alarm shift; exec @ARGV' "$REVIEW_TIMEOUT_SECS" "$@"; }
+
 RC=0
 case "$TO" in
   claude)
-    OUT=$(claude -p "$PROMPT" --allowedTools "Read,Grep,Glob" 2>&1) || RC=$?
+    # --safe-mode: disables hooks, MCP servers, skills, plugins and other
+    # customizations of the LAUNCH directory while keeping OAuth auth,
+    # built-in tools and permissions intact. Closes the recorded exposure
+    # (claude-code.md §9, 2026-08-25): a plain `-p` run executes the
+    # launch directory's .claude/settings.json hooks and connects its
+    # .mcp.json servers with no trust dialog. (--bare would close it too
+    # but forces API-key auth, breaking subscription dispatch.)
+    # --model sonnet: Tier 1/2 review is Sonnet-tier per
+    # markdowns/agents/model-capabilities.md heuristics — do not inherit
+    # the operator's session model. </dev/null: never leave a vendor CLI
+    # waiting on stdin.
+    OUT=$(with_timeout claude -p "$PROMPT" --safe-mode --model sonnet --allowedTools "Read,Grep,Glob" </dev/null 2>&1) || RC=$?
     ;;
   codex)
     TMP=$(mktemp)
-    COMBINED=$(codex exec --sandbox read-only --output-last-message "$TMP" "$PROMPT" 2>&1) || RC=$?
+    # Inline target transport (same pattern as the antigravity branch):
+    # at medium effort the reviewer sometimes reads the rubric's "do not
+    # execute" as banning file reads and refuses the review (observed
+    # 2026-08-25). Embedding the target removes the file-access
+    # dependence entirely for targets up to the same 100KB cap.
+    CODEX_PROMPT="$PROMPT"
+    if [ -f "$TARGET" ] && [ "$(wc -c < "$TARGET" | tr -d ' ')" -le 100000 ]; then
+      CODEX_PROMPT="$PROMPT
+
+The exact target content is embedded below; review it directly instead
+of reading any path.
+
+--- BEGIN EXACT REVIEW TARGET ---
+$(cat "$TARGET")
+--- END EXACT REVIEW TARGET ---"
+    fi
+    # </dev/null is load-bearing: `codex exec` appends stdin to the prompt
+    # when stdin is not a TTY and blocks awaiting EOF ("Reading additional
+    # input from stdin..."), so without it this branch hangs forever in
+    # any non-interactive context (codex-cli.md §9, verified 2026-08-25).
+    # The effort override is also load-bearing: exec inherits the
+    # operator's global model_reasoning_effort (xhigh on the reference
+    # machine), which pushed a 553-line review past 9 minutes.
+    COMBINED=$(with_timeout codex exec --sandbox read-only -c 'model_reasoning_effort="medium"' --output-last-message "$TMP" "$CODEX_PROMPT" </dev/null 2>&1) || RC=$?
     OUT=$(cat "$TMP")
     [ -z "$OUT" ] && OUT="$COMBINED"
     rm -f "$TMP"
@@ -132,7 +174,11 @@ case "$TO" in
     # floor, project policy, and recorded headless write-refusal probe all
     # pass. There is deliberately no override for this security boundary.
     # See markdowns/agents/vendor-knowledge/antigravity-cli.md §9.
-    AGY_MIN_VERSION="1.1.4"
+    # 1.1.18 floor: below it, a valueless `--print --sandbox 'task'`
+    # invocation ran with the prompt "--sandbox" and the sandbox OFF
+    # (antigravity-cli.md §9). 1.1.4 was the previous floor (first
+    # release honoring persisted headless policy); 1.1.18 supersedes it.
+    AGY_MIN_VERSION="1.1.18"
     AGY_VERSION=$(agy --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
     if [ -z "${HOME:-}" ]; then
       echo "Error: Antigravity review dispatch is disabled: HOME is unset, so the persisted CLI policy cannot be verified." >&2
@@ -170,6 +216,18 @@ case "$TO" in
       echo "Run the scratch-repo probe on agy >= $AGY_MIN_VERSION and record headless-write-probe: passed before dispatch." >&2
       exit 4
     fi
+
+    # The probe must have passed ON the installed binary, not merely once.
+    # Print-mode permission-denial semantics changed across 1.1.18/1.1.20
+    # (antigravity-cli.md §9): a probe result from an older binary can be
+    # silently invalid while `passed` still reads true. Hard-earned on
+    # 2026-08-25, when a 1.1.4-era probe sat stale against 1.1.19.
+    AGY_PROBE_VERSION=$(grep -E '^headless-write-probe-verified-on:' "$AGY_KNOWLEDGE" | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+    if [ -z "$AGY_PROBE_VERSION" ] || [ "$AGY_PROBE_VERSION" != "$AGY_VERSION" ]; then
+      echo "Error: Antigravity review dispatch is disabled: the write-refusal probe was verified on '${AGY_PROBE_VERSION:-unrecorded}' but the installed agy is '$AGY_VERSION'." >&2
+      echo "Re-run the probe on the installed binary and update headless-write-probe-verified-on in $AGY_KNOWLEDGE." >&2
+      exit 4
+    fi
     # No --read-only flag: effective read-only review depends on the checked
     # restrictive policy plus the refusal probe, not on prompt text alone.
     # The exact target is also transported inline so strict mode needs no read
@@ -195,7 +253,7 @@ commands, or inspect any path. Review only the embedded artifact.
 --- BEGIN EXACT REVIEW TARGET ---
 $AGY_TARGET_BODY
 --- END EXACT REVIEW TARGET ---"
-    OUT=$(agy --print "$AGY_PROMPT" --mode plan --sandbox --print-timeout 5m 2>&1) || RC=$?
+    OUT=$(with_timeout agy --print "$AGY_PROMPT" --mode plan --sandbox --print-timeout 5m </dev/null 2>&1) || RC=$?
     ;;
 esac
 
