@@ -217,12 +217,15 @@ forgotten; the choice to defer is explicit, not implicit.
   `.agents/skills/` is missing.
 - **If you add a new vendor** — author a per-vendor knowledge file at
   `markdowns/agents/vendor-knowledge/<vendor>.md`; add the vendor to
-  `scripts/cross-vendor-review.sh`'s case match; document the
+  `scripts/cross-vendor-review.sh`'s case match **and** its `--tier`
+  model block (one row per tier, mirroring the per-vendor mapping in
+  `model-capabilities.md` — without them the reviewer model is empty);
+  document the
   consumption path in this file's per-vendor consumption table; add
   a per-vendor config file/dir as needed if the vendor doesn't read
   `AGENTS.md` natively.
-- **If you drop a vendor** — remove its case from
-  `scripts/cross-vendor-review.sh`, archive its knowledge file (or
+- **If you drop a vendor** — remove its case and its `--tier` model
+  rows from `scripts/cross-vendor-review.sh`, archive its knowledge file (or
   delete if unused), and remove any vendor-specific config dirs. The
   sync mechanism doesn't depend on any one vendor — it stays the
   same shape regardless of which vendors are active.

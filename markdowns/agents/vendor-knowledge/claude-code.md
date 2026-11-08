@@ -923,11 +923,12 @@ when run with an API key. See the Agent SDK bullets below.**
   project SessionStart sentinel, while `--safe-mode` and `--bare` did
   not. The re-probe used `--init-only`, not `-p`, and the docs'
   hook-safety advice names `--bare` / `disableAllHooks`, not
-  `--safe-mode`. Residual permission exposure: see the flag-set bullet
-  above. `[MEDIUM]`
+  `--safe-mode`. The separate permission exposure (operator allow rules
+  surviving `--safe-mode`) was closed 2026-11-08 by `--tools` — see the
+  flag-set bullet above. `[MEDIUM]`
   ([code.claude.com/docs/en/headless](https://code.claude.com/docs/en/headless),
   [`refresh-log.md`](../refresh-log.md) residual 2026-08-25,
-  `scripts/cross-vendor-review.sh:128-146`, `--init-only` probe
+  `scripts/cross-vendor-review.sh` claude branch, `--init-only` probe
   2026-11-08)
 
 ---

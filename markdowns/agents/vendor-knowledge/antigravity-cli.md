@@ -11,8 +11,10 @@ last-verified: 2026-11-08
 # NOT a current-state claim): the 1.1.20 denial phrasing ("no output
 # produced — a tool required the \"write_file\" permission … auto-denied")
 # matched cross-vendor-review.sh's fail-closed regex.
-# NOTE: denial exits 0 on 1.1.20 (changelog claim confirmed by probe) —
-# text-grep is the ONLY working detection; exit codes are useless for this.
+# NOTE: denial exits 0 (1.1.20 and 1.5.3, confirmed by probe) — exit codes
+# are useless for denial detection. Since 2026-11-08 the dispatcher detects
+# denials from the JSON envelope's denied_actions (primary) with a stderr
+# text grep as backup.
 # The dispatcher's version gate requires headless-write-probe-verified-on
 # to EQUAL the installed binary — re-run this probe on every agy bump.
 # Probe RE-RUN 2026-11-08 on binary 1.5.3, AFTER the dispatcher moved to
@@ -808,9 +810,11 @@ absolute numbers**.
   a benign control did not false-positive it. **That match is NOT a
   current-state claim** — see the 2026-11-08 warning below. The
   exit-code half of the concern is CONFIRMED REAL: the denial exited
-  **0**, so exit-status detection would never fire — the text grep is
-  the only working mechanism and must be re-verified on every version
-  bump (the dispatcher's probe-version gate enforces exactly that). No
+  **0**, so exit-status detection would never fire. At the time the text
+  grep was the only working mechanism; since 2026-11-08 the JSON
+  `denied_actions` check is primary. Detection must still be re-verified
+  on every version bump (the dispatcher's probe-version gate enforces
+  exactly that). No
   changelog entry 1.1.21–1.5.3 reverses the denials-are-non-fatal
   behavior. Probe record in this file's frontmatter. (three-arm probe
   2026-08-25, binary 1.1.20; `agy changelog` 1.1.21–1.5.3)
@@ -964,10 +968,14 @@ absolute numbers**.
   no `frontier` mapping on the reference account so a frontier request
   exits 2 and routes elsewhere — and `--output-format json` added.
   End-to-end dispatcher run 2026-11-08 returned a formatted review with
-  `Reviewer: antigravity / gemini-3.8-flash-high (tier: workhorse)`; the
-  reviewer cited repo files without any `denied_actions`, i.e. workspace
-  reads were permitted — acceptable for a read-only reviewer, and
-  consistent with the 1.1.20 "workspace read auto-granted" changelog line.)
+  `Reviewer: antigravity / gemini-3.8-flash-high (tier: workhorse)`. The
+  review cited other repo files with no `denied_actions`; whether it
+  actually **read** them is **not determined** (no tool-call evidence was
+  captured, and the prompt names files itself). Note the property this
+  implies: the envelope check refuses only *denied* tool use — a
+  permitted read would not trip it, so the prompt's "do not call tools"
+  contract is enforced for writes/commands by strict mode, not for
+  reads.)
 
   Five controls / caveats:
   (a) `--sandbox` enforces shell-command containment, NOT file-write

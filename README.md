@@ -51,6 +51,7 @@ Install pointers per CLI:
 
 Optional tooling some scripts use:
 - **`python3`**: `scripts/setup.sh` uses Python to update the refresh-vendor skill's hardcoded vendor list when you prune vendors. Pre-installed on macOS and most Linux distros. Without it, setup.sh warns and skips that one step.
+- **`python3` or `jq`** (Antigravity reviews only): `scripts/cross-vendor-review.sh --to antigravity` reads agy's JSON output with one of them to verify no tool action was denied. With neither installed, Antigravity review is refused (fails closed).
 
 ## Quick start
 

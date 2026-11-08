@@ -126,6 +126,11 @@ so a future inventory-only walk cannot silently refresh Google rates.
 | workhorse | Sonnet 5.5 | GPT-6.1 Sol (`gpt-6.1-sol`) | `gemini-3.8-flash-high` / `-medium` |
 | light | Haiku 5.5 · Sonnet 5.5 at low effort | GPT-6 Luna (`gpt-6-luna`) | `gemini-3.8-flash-low` — subagent tier alias `flash` |
 
+**Declared quoter:** [`scripts/cross-vendor-review.sh`](../../scripts/cross-vendor-review.sh)
+copies this mapping into its `--tier` case block to pin the reviewer
+model (Claude uses the `opus`/`sonnet`/`haiku` aliases; Antigravity has
+no frontier entry). Update both together on any model-drift sweep.
+
 Prices deliberately NOT restated here — the per-vendor model tables
 above are the SSOT for rates (per the AGENTS.md "SSOT for shared
 values" rule); this mapping names models only.

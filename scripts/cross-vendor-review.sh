@@ -63,9 +63,10 @@ done
 [ -r "$RUBRIC" ] || { echo "Error: rubric file not readable: $RUBRIC" >&2; exit 2; }
 [ -z "$BRIEF" ] || [ -r "$BRIEF" ] || { echo "Error: brief not readable: $BRIEF" >&2; exit 2; }
 
-# Tier -> per-vendor reviewer model. Declared quote of the per-vendor tier
-# mapping in markdowns/agents/model-capabilities.md (SSOT, 2026-11-08);
-# /refresh-vendor walks update both together. The reviewer model is pinned
+# quotes: markdowns/agents/model-capabilities.md#per-vendor-tier-mapping
+# Tier -> per-vendor reviewer model. Declared quote of that mapping (SSOT,
+# 2026-11-08); the mapping table points back here, so a model-drift
+# consistency sweep (refresh-vendor.md) finds and updates both. The reviewer model is pinned
 # here so a review never inherits the operator's personal model (a
 # frontier model on the reference machine for codex — 2026-11-08 walk).
 case "$TIER" in
@@ -86,7 +87,10 @@ case "$TO:$TIER" in
   antigravity:frontier)
     echo "Error: no frontier-tier model is mapped for antigravity (see model-capabilities.md). Use --to codex or --to claude for a frontier review." >&2
     exit 2;;
-  *) REVIEW_MODEL="";;
+  *)
+    echo "Error: no reviewer model mapped for --to $TO --tier $TIER." >&2
+    echo "Supported vendors: claude | codex | antigravity (add a vendor's tier rows here when adding it)." >&2
+    exit 2;;
 esac
 
 # Extract the rubric prompt block delimited by HTML comments.
@@ -384,10 +388,8 @@ print("OK"); sys.stdout.write(r)
         echo "REFUSE neither python3 nor jq is available to verify the agy JSON envelope"
       fi
     }
-    AGY_PARSED=$(printf '%s' "$AGY_JSON" | agy_parse)
-    OUT="$AGY_STDERR
-$AGY_JSON"
     if [ "$RC" -eq 0 ]; then
+      AGY_PARSED=$(printf '%s' "$AGY_JSON" | agy_parse)
       case "$AGY_PARSED" in
         OK*) OUT=$(printf '%s' "$AGY_PARSED" | sed '1d');;
         *)
@@ -395,13 +397,24 @@ $AGY_JSON"
           echo "The inline review contract requires a tool-free, complete response; no review was accepted." >&2
           exit 4;;
       esac
+    else
+      # agy failed (1.5.x exits 3 on a print timeout or partial-then-error,
+      # and the envelope may carry a PARTIAL response). Never surface the
+      # envelope or any response text: OUT is agy's stderr only, which is
+      # where its AGY_ERROR / rate-limit messages go. The rate-limit check
+      # and exit-code remap below then run on that.
+      OUT="$AGY_STDERR"
+      echo "Error: Antigravity exited $RC; no review was accepted." >&2
     fi
     ;;
 esac
 
 # Rate-limit detection: a non-zero RC with a rate-limit-shaped error
 # message means "try a different vendor," not "the review failed."
-if [ "$RC" -ne 0 ] && printf '%s' "$OUT" | grep -qiE 'rate.?limit|quota|429|too many requests|usage limit'; then
+# (Here-strings, not `printf | grep -q`: under pipefail a large input can
+# SIGPIPE the printf when grep exits on first match, making the match read
+# as a failure.)
+if [ "$RC" -ne 0 ] && grep -qiE 'rate.?limit|quota|429|too many requests|usage limit' <<<"$OUT"; then
   echo "Rate limit hit on $TO. Re-run with --to <other-vendor>." >&2
   exit 3
 fi
@@ -415,7 +428,7 @@ fi
 # the JSON envelope; scanning the review body would false-refuse any review
 # of a diff that merely mentions these phrases.
 if [ "$TO" = "antigravity" ] &&
-   printf '%s' "${AGY_STDERR:-}" | grep -qiE 'no output produced.*permission|headless mode cannot prompt for|auto-denied|tool(\(s\))? required.*(permission|approval)'; then
+   grep -qiE 'no output produced.*permission|headless mode cannot prompt for|auto-denied|tool(\(s\))? required.*(permission|approval)' <<<"${AGY_STDERR:-}"; then
   echo "Error: Antigravity review dispatch failed closed because strict mode denied a tool request." >&2
   echo "The inline review contract requires a tool-free response; no review was accepted." >&2
   exit 4
