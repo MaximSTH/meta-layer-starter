@@ -870,34 +870,39 @@ when run with an API key. See the Agent SDK bullets below.**
 - **Continuation:** `--continue` resumes most recent; `--resume <session-id>`
   resumes a specific session. `[STABLE]`
 - **Cross-vendor review flag set** (consumed by `scripts/cross-vendor-review.sh` per [`cross-vendor-review.md`](../../protocols/cross-vendor-review.md)),
-  **as the script actually runs it today**
-  ([`cross-vendor-review.sh:146`](../../../scripts/cross-vendor-review.sh)):
-  `claude -p "$PROMPT" --safe-mode --model sonnet --allowedTools
-  "Read,Grep,Glob" </dev/null` (wrapped in a 900s perl `alarm`
-  timeout). No `--bare`. Every claude flag it passes is present in
-  `claude --help` 2.1.319. `--model sonnet` now resolves to **Sonnet
-  5.5** on the Anthropic API (v2.1.284; see §7). **Corrected
-  2026-11-08 — the allowlist is NOT a read-only equivalent:**
-  `--allowedTools` auto-approves the listed tools and restricts nothing
-  (§9 "Tool approval flags"). The run is read-only in practice only
-  because a Manual-mode `-p` run auto-denies calls that would need
-  approval. Two consequences: (1) **`--safe-mode` keeps permissions
-  working normally**, so the operator's user-level
-  `permissions.allow` rules stay in force inside a review run (a
-  `Bash(...)` allow rule would be auto-approved); (2) a
-  `permissions.defaultMode` in the operator's settings outranks the
-  `-p` Manual default, and the script passes no `--permission-mode`.
-  The reviewer rubric injects `Do NOT execute, write, or modify files.`
-  — prompt text, not enforcement. Prompt assembly is an injection
+  **as the script runs it** ([`cross-vendor-review.sh`](../../../scripts/cross-vendor-review.sh),
+  claude branch): `claude -p "$PROMPT" --safe-mode --model
+  "$REVIEW_MODEL" --tools "Read,Grep,Glob" --allowedTools
+  "Read,Grep,Glob" </dev/null` (900s perl `alarm` timeout).
+  `$REVIEW_MODEL` comes from `--tier` (default `workhorse` = `sonnet`,
+  which resolves to **Sonnet 5.5**, v2.1.284; `frontier` = `opus`,
+  `light` = `haiku`). No `--bare`. Every flag is present in
+  `claude --help` 2.1.319.
+  **Why `--tools` (added 2026-11-08):** `--allowedTools` only
+  auto-approves the listed tools and removes nothing (§9 "Tool approval
+  flags"), and **`--safe-mode` keeps permissions working normally**, so
+  the operator's user-level `permissions.allow` rules stayed in force
+  inside a review run. `--tools` restricts the built-in tool set itself.
+  **Behaviorally probed 2026-11-08 (v2.1.319), three arms, scratch
+  repo, stream-json `system/init` + `tool_use` events:** (A) old flags
+  without `--tools` — 26 tools at init, and the reviewer **ran `gh api
+  /zen` via the operator's `Bash(gh api:*)` allow rule** (exposure
+  demonstrated; the reference operator also allow-lists `WebFetch`,
+  `WebSearch` and `Read(//Users/<operator>/**)`); (B) with `--tools` —
+  init tools exactly `Glob`/`Grep`/`Read`, reply `NO_BASH`; (C) with
+  `--tools` — a `Read` of a nonce file succeeded, so review reads still
+  work. A `permissions.defaultMode` in operator settings can no longer
+  widen the tool set either, since the tools are absent rather than
+  merely unapproved. The rubric's `Do NOT execute, write, or modify
+  files.` remains prompt text; `--tools` is the enforcement. Prompt assembly is an injection
   surface per the skills-in-`-p` gap note in §10 — expansion is
   leading-token-only (canary test, 2026-06-10), and the script's fixed
   `From:` prefix occupies that position; the property holds only while
   the prefix stays first in `PROMPT`.
-  **OPEN RESIDUAL (not fixed):** candidate fix `--tools
-  "Read,Grep,Glob"` (and/or an explicit `--permission-mode`), **unprobed**
-  — tracked in [`refresh-log.md`](../refresh-log.md) residuals for a
-  separate Tier 1 PR (supervisor ruling R4, 2026-11-08). `[MEDIUM]`
-  (`scripts/cross-vendor-review.sh:128-146`, `claude --help` 2.1.319,
+  **RESOLVED 2026-11-08** (fix/dispatcher-hardening-2026-11-08; was the
+  open residual from the 2026-11-08 walk). `[MEDIUM]`
+  (`scripts/cross-vendor-review.sh` claude branch, `claude --help` 2.1.319,
+  three-arm probe 2026-11-08,
   [code.claude.com/docs/en/headless#auto-approve-tools](https://code.claude.com/docs/en/headless),
   [code.claude.com/docs/en/cli-reference](https://code.claude.com/docs/en/cli-reference))
 - **⚠️ SECURITY — a `-p` review without `--bare` executes the hooks of
@@ -918,11 +923,12 @@ when run with an API key. See the Agent SDK bullets below.**
   project SessionStart sentinel, while `--safe-mode` and `--bare` did
   not. The re-probe used `--init-only`, not `-p`, and the docs'
   hook-safety advice names `--bare` / `disableAllHooks`, not
-  `--safe-mode`. Residual permission exposure: see the flag-set bullet
-  above. `[MEDIUM]`
+  `--safe-mode`. The separate permission exposure (operator allow rules
+  surviving `--safe-mode`) was closed 2026-11-08 by `--tools` — see the
+  flag-set bullet above. `[MEDIUM]`
   ([code.claude.com/docs/en/headless](https://code.claude.com/docs/en/headless),
   [`refresh-log.md`](../refresh-log.md) residual 2026-08-25,
-  `scripts/cross-vendor-review.sh:128-146`, `--init-only` probe
+  `scripts/cross-vendor-review.sh` claude branch, `--init-only` probe
   2026-11-08)
 
 ---

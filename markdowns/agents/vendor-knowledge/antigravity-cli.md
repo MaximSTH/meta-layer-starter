@@ -11,17 +11,28 @@ last-verified: 2026-11-08
 # NOT a current-state claim): the 1.1.20 denial phrasing ("no output
 # produced — a tool required the \"write_file\" permission … auto-denied")
 # matched cross-vendor-review.sh's fail-closed regex.
-# NOTE: denial exits 0 on 1.1.20 (changelog claim confirmed by probe) —
-# text-grep is the ONLY working detection; exit codes are useless for this.
+# NOTE: denial exits 0 (1.1.20 and 1.5.3, confirmed by probe) — exit codes
+# are useless for denial detection. Since 2026-11-08 the dispatcher detects
+# denials from the JSON envelope's denied_actions (primary) with a stderr
+# text grep as backup.
 # The dispatcher's version gate requires headless-write-probe-verified-on
 # to EQUAL the installed binary — re-run this probe on every agy bump.
-# 2026-11-08: installed agy is 1.5.3 (auto-updated from 1.4.12 during the
-# refresh walk). The version gate REFUSES dispatch as designed (1.1.20 !=
-# 1.5.3). Do NOT re-probe until the denial-regex gap in §9 (1.1.27+ notice
-# not matched) is fixed in the dispatcher — re-probe must follow that fix.
+# Probe RE-RUN 2026-11-08 on binary 1.5.3, AFTER the dispatcher moved to
+# JSON-envelope detection (fix/dispatcher-hardening-2026-11-08). Scratch
+# git repo, global strict+sandbox + project hardening in force, EXACT new
+# dispatcher flags (--print --sandbox --print-timeout 5m --model
+# gemini-3.8-flash-high --output-format json, AGY_CLI_DISABLE_AUTO_UPDATE=1,
+# no --mode plan): (1) file-write request -> denied_actions [write_file],
+# sentinel absent; (2) shell write -> denied_actions [command], sentinel
+# absent; (3) tool-reach-then-answer -> denied_actions [command], run ends
+# with empty response (no partial answer); (4) benign control x3 -> "OK",
+# denied_actions null. git status clean; version 1.5.3 before and after.
+# Denial notice goes to STDERR, envelope to stdout; exit 0 on denial
+# (unchanged). With --mode plan the benign control reached for a shell in
+# 2 of 3 runs (denied -> empty review), hence plan mode was dropped.
 headless-write-probe: passed
-headless-write-probe-verified-on: 1.1.20
-headless-write-probe-history: 1.1.4 (2026-07-18), 1.1.20 (2026-08-25)
+headless-write-probe-verified-on: 1.5.3
+headless-write-probe-history: 1.1.4 (2026-07-18), 1.1.20 (2026-08-25), 1.5.3 (2026-11-08)
 # (The legacy `probe-version` / `probe-date` keys from the 2026-07-18 walk
 # are retired — superseded by the headless-write-probe-* keys above; their
 # information lives in the history line. Flagged by the Antigravity peer
@@ -746,10 +757,12 @@ absolute numbers**.
   needs the terminal sandbox and isn't available for business or
   enterprise accounts". `--mode plan` was introduced as a v1.1.4 launch flag
   intended to keep the reviewer in research/plan behavior. ⚠️ **It is no
-  longer a headless gate** — see the 2026-11-08 warning below (1.1.28
-  auto-proceeds through plan review in `-p`). The dispatcher still passes
-  it; treat it as **no** defense in depth in headless mode until the
-  deferred Tier 1 PR decides otherwise. `[MEDIUM]` (`agy --help` 1.5.3,
+  longer a headless gate** (1.1.28 auto-proceeds through plan review in
+  `-p`), and on 1.5.3 it made a benign "Reply with exactly: OK" prompt
+  reach for a shell command in 2 of 3 runs (probe 2026-11-08) — denied
+  under strict, leaving an empty review. **The dispatcher dropped it
+  2026-11-08**; strict `toolPermission` is the write barrier. `[MEDIUM]`
+  (`agy --help` 1.5.3, probe 2026-11-08,
   [docs/cli/reference](https://antigravity.google/docs/cli/reference),
   `agy changelog` 1.1.28/1.3.5)
 - **Output format:** ⚠️ **CORRECTED 2026-08-25 — was verified-false.**
@@ -788,24 +801,39 @@ absolute numbers**.
   with an empty response when the agent state stream dropped mid-run.
   **Why this matters here:**
   [`cross-vendor-review.sh`](../../../scripts/cross-vendor-review.sh)
-  detects a denied tool request by **grepping the output text** for
-  permission-denial phrasing and refusing the review.
+  detected a denied tool request by **grepping the output text** for
+  permission-denial phrasing (until 2026-11-08; it now reads the JSON
+  envelope's `denied_actions` — see below).
   **History — resolved ON 1.1.20 (2026-08-25 probe):** on 1.1.20 the
   write refusal held (tool and shell arms both auto-denied, sentinel
   absent), the 1.1.20 denial phrasing matched the dispatcher's regex, and
   a benign control did not false-positive it. **That match is NOT a
   current-state claim** — see the 2026-11-08 warning below. The
   exit-code half of the concern is CONFIRMED REAL: the denial exited
-  **0**, so exit-status detection would never fire — the text grep is
-  the only working mechanism and must be re-verified on every version
-  bump (the dispatcher's probe-version gate enforces exactly that). No
+  **0**, so exit-status detection would never fire. At the time the text
+  grep was the only working mechanism; since 2026-11-08 the JSON
+  `denied_actions` check is primary. Detection must still be re-verified
+  on every version bump (the dispatcher's probe-version gate enforces
+  exactly that). No
   changelog entry 1.1.21–1.5.3 reverses the denials-are-non-fatal
   behavior. Probe record in this file's frontmatter. (three-arm probe
   2026-08-25, binary 1.1.20; `agy changelog` 1.1.21–1.5.3)
-- **⚠️ OPEN 2026-11-08 — denial-regex gap: the dispatcher's fail-closed
-  grep does NOT match the 1.1.27+ headless denial notice.** `[VOLATILE]`
-  **NOT FIXED — deferred to a separate Tier 1 PR (supervisor ruling R4,
-  2026-11-08).** 1.1.27: "Fixed headless runs with `-p` silently skipping
+- **RESOLVED 2026-11-08 — denial-regex gap: the old fail-closed grep did
+  NOT match the 1.1.27+ headless denial notice.** `[VOLATILE]`
+  **Fix (fix/dispatcher-hardening-2026-11-08):** the dispatcher now runs
+  agy with `--output-format json` and **refuses** (exit 4) unless the
+  envelope parses, `status` is `SUCCESS`, `denied_actions` is empty,
+  `finished_reason` is absent and `response` is non-empty (python3, or
+  `jq` as fallback; neither available ⇒ refuse). A widened text grep on
+  agy's **stderr only** stays as belt-and-braces. **Observed on 1.5.3
+  (probe 2026-11-08):** every denial reported `denied_actions`
+  (`write_file` or `command`), exited **0**, returned an empty
+  `response`, and printed the (A)-shape notice — "no output produced — a
+  tool required the "command" permission …" — on **stderr** while stdout
+  carried clean JSON. The (B) notice below was not emitted in any arm: a
+  denied run ended rather than continuing to answer. The parser was
+  tested against the real probe outputs and seven synthetic envelopes on
+  both the python3 and jq paths. Original finding follows. 1.1.27: "Fixed headless runs with `-p` silently skipping
   tool actions they were not permitted to take, which now end with a
   notice naming the refused actions and report them as `denied_actions`
   in the JSON output." Two headless denial templates are present in both
@@ -826,32 +854,31 @@ absolute numbers**.
   `--dangerously-skip-permissions`, with no "denied" after it). A possible
   plural rendering of (A) ("2 tools required …" without "no output
   produced" on the same line) would also be NOMATCH — **hypothetical**,
-  the rendered plural form is unobserved. **Impact (latent):** dispatch is
-  currently refused before `agy` runs, by the probe-version gate
-  (verified-on 1.1.20 ≠ installed 1.5.3). If dispatch were re-enabled
-  without fixing detection, a review that reached for a tool, was
+  the rendered plural form is unobserved. **Impact (was latent; now
+  closed):** dispatch was refused before `agy` ran, by the probe-version
+  gate (verified-on 1.1.20 ≠ installed 1.5.3). Had dispatch been
+  re-enabled without fixing detection, a review that reached for a tool, was
   denied, and still produced output would be **accepted** instead of
   refused — fail-open for *review integrity*. It
   is not a write-safety failure: strict `toolPermission` still refuses
   the write. Before 1.1.27 such denials were silent, so the 1.1.20 probe
-  could not have exercised this. **Better detection path (for the Tier 1
-  PR):** `--output-format json`, refusing on non-empty `denied_actions`
-  or any present `finished_reason`, instead of (or in addition to) a
-  widened text regex. Confidence: changelog + binary strings;
-  regex result verified-by-execution; actual emitted output **not
-  observed** (requires the probe). (`agy changelog` 1.1.27, `strings` on
-  binaries 1.4.12/1.5.3, regex run 2026-11-08)
-- **⚠️ OPEN 2026-11-08 — `--mode plan` is no longer a headless gate.**
-  `[MEDIUM]` **NOT FIXED — deferred (R4).** 1.1.28: "Fixed headless
+  could not have exercised this. (`agy changelog` 1.1.27, `strings` on
+  binaries 1.4.12/1.5.3, regex run + probe 2026-11-08)
+- **RESOLVED 2026-11-08 — `--mode plan` is no longer a headless gate;
+  the dispatcher dropped it** (see "Execution mode" above). `[MEDIUM]` 1.1.28: "Fixed headless
   (`-p`) runs stalling forever on implementation-plan approval that no one
   could give; non-interactive runs now proceed through plan review
   automatically." In `-p` mode neither `--mode plan` nor the project's
   `artifactReviewPolicy: "asks-for-review"` holds execution at the plan;
-  strict `toolPermission` is the only remaining write barrier.
-  `low-confidence` on the exact interaction (not executed).
-  (`agy changelog` 1.1.28)
-- **⚠️ OPEN 2026-11-08 — timeout-expiry semantics and an exit-3
-  collision.** `[VOLATILE]` **NOT FIXED — deferred (R4).** 1.1.28 → 1.4.12:
+  strict `toolPermission` is the only remaining write barrier — and on
+  1.5.3 it held for both file and shell writes (probe 2026-11-08).
+  (`agy changelog` 1.1.28, probe 2026-11-08)
+- **RESOLVED 2026-11-08 — timeout-expiry semantics and an exit-3
+  collision.** `[VOLATILE]` **Fix:** a present `finished_reason`
+  (`print_timeout` / `interrupted` / `error`) now refuses the review, and
+  the dispatcher remaps any peer-vendor exit code that collides with its
+  own reserved 2/3/4 to 1, so agy's exit 3 can no longer read as "rate
+  limited, try another vendor". Original finding: 1.1.28 → 1.4.12:
   on `--print-timeout` expiry the CLI "returns the partial output it has
   and exits successfully with a warning on stderr" — on those versions the
   dispatcher would have accepted a truncated review with exit 0. 1.5.0+
@@ -932,37 +959,49 @@ absolute numbers**.
 - **Cross-vendor review flag set** (consumed by `scripts/cross-vendor-review.sh` per [`cross-vendor-review.md`](../../protocols/cross-vendor-review.md)):
 
   ```
-  agy --print "<prompt>" --mode plan --sandbox --print-timeout 5m </dev/null
+  AGY_CLI_DISABLE_AUTO_UPDATE=1 agy --print "<prompt>" --sandbox \
+    --print-timeout 5m --model "$REVIEW_MODEL" --output-format json </dev/null
   ```
+
+  (Changed 2026-11-08: `--mode plan` dropped, `--model` from `--tier` —
+  `workhorse` = `gemini-3.8-flash-high`, `light` = `gemini-3.8-flash-low`,
+  no `frontier` mapping on the reference account so a frontier request
+  exits 2 and routes elsewhere — and `--output-format json` added.
+  End-to-end dispatcher run 2026-11-08 returned a formatted review with
+  `Reviewer: antigravity / gemini-3.8-flash-high (tier: workhorse)`. The
+  review cited other repo files with no `denied_actions`; whether it
+  actually **read** them is **not determined** (no tool-call evidence was
+  captured, and the prompt names files itself). Note the property this
+  implies: the envelope check refuses only *denied* tool use — a
+  permitted read would not trip it, so the prompt's "do not call tools"
+  contract is enforced for writes/commands by strict mode, not for
+  reads.)
 
   Five controls / caveats:
   (a) `--sandbox` enforces shell-command containment, NOT file-write
   read-only. File-write refusal comes from the global CLI
   `toolPermission: "strict"` setting, verified by the probe below.
-  (b) The dispatcher takes plain text and parses it by string-matching
-  the rubric's `### Anchored observations` / `### No-anchor
-  observations` headers verbatim. ⚠️ **Corrected 2026-08-25:** this is a
-  *dispatcher* choice, not a CLI limitation — `agy --help` at 1.1.19
-  lists `--output-format (text, json, stream-json)` and `--json-schema`.
-  Structured output is available and the dispatcher does not use it.
-  The 2026-11-08 JSON fields `denied_actions` / `finished_reason` make
-  structured output the better detection path (open, deferred — R4).
-  (c) v1.1.4 headless mode auto-denies a write tool that requires interactive
-  confirmation under `strict`; it does not hang. ⚠️ `--mode plan` no longer
-  holds a headless run at the plan (1.1.28 — see the open warning above).
+  (b) Since 2026-11-08 the dispatcher uses `--output-format json` for
+  **outcome checking** (status / `denied_actions` / `finished_reason` /
+  non-empty `response`, all fail-closed) and passes the `response` text
+  on as the review. The review body itself is still free text in the
+  rubric's format; a `--json-schema` review-observation schema would be
+  a separate change and is not adopted.
+  (c) Headless mode auto-denies a write tool that requires interactive
+  confirmation under `strict`; it does not hang (re-verified on 1.5.3).
+  `--mode plan` is no longer used (1.1.28 made it a non-gate).
   (d) **Dispatch floor: agy ≥ 1.1.18** (raised from 1.1.4 on 2026-08-25),
   **and** `headless-write-probe-verified-on` must EQUAL the installed
   version. The dispatcher also verifies the global strict+sandbox policy,
   project hardening policy, and this file's passed probe marker before
   invoking Antigravity. There is no safety override. **State 2026-11-08:**
-  installed 1.5.3 ≠ verified-on 1.1.20, so the gate refuses dispatch (exit
-  4) as designed — gate logic re-run by hand, dispatcher not executed.
+  probe re-run and passed on installed 1.5.3 (frontmatter), so the gate
+  allows dispatch again; any agy update re-closes it until re-probed.
   (e) The dispatcher embeds review targets up to 100,000 bytes directly in the
   prompt and forbids tool use. This avoids granting headless `read_file` access.
-  A permission-denial response fails closed with exit 4 **only when the
-  denial text matches the regex** — ⚠️ the 1.1.27+ notice does not (open
-  warning above), so "fails closed on any permission denial" is not true
-  on ≥1.1.27 until the deferred fix lands.
+  A permission denial fails closed with exit 4 via the JSON
+  `denied_actions` check (primary) and a stderr text grep matching both
+  denial notices (backup).
 
   **Probe result (2026-07-18, agy v1.1.4): PASSED after one falsifying first
   attempt.** With only scratch-repo `.gemini/settings.json`, Antigravity did
@@ -987,20 +1026,15 @@ absolute numbers**.
   behavior the claim is `[MEDIUM]`.
 - **~~No JSON output format documented.~~ VERIFIED-FALSE, corrected
   2026-08-25.** `agy --help` at 1.1.19 lists `--output-format (text,
-  json, stream-json)` and `--json-schema`. The dispatcher still parses
-  plain text by string-matching the rubric's `### Anchored observations`
-  / `### No-anchor observations` headers, so the fragility is real — but
-  it is now a **dispatcher gap, not a vendor limitation**, and is
-  fixable by adopting `--output-format json`. Tracked as a residual.
-  2026-11-08: the JSON envelope now also exposes `denied_actions` and
-  `finished_reason` (§9). Those fields describe the **execution
-  outcome**, so they can replace the denial text-grep (refuse on
-  non-empty `denied_actions` / present `finished_reason`, once their
-  semantics are probed). They do **not** replace the rubric-header
-  parsing: that needs a review-observation schema via `--json-schema`
-  plus matching dispatcher changes. Both folded into the deferred
-  Tier 1 PR (R4).
-  `[MEDIUM]` (`agy --help` 1.1.19 / 1.5.3, `agy changelog` 1.1.27/1.4.11)
+  json, stream-json)` and `--json-schema`. **2026-11-08: adopted for
+  outcome checking** — the dispatcher now runs `--output-format json`
+  and refuses on non-empty `denied_actions`, a present
+  `finished_reason`, a non-`SUCCESS` status or an empty response; the
+  `denied_actions` semantics were observed in the 1.5.3 probe (§9).
+  The review body stays free text: a review-observation schema via
+  `--json-schema` would be a separate change and is not adopted.
+  `[MEDIUM]` (`agy --help` 1.1.19 / 1.5.3, `agy changelog` 1.1.27/1.4.11,
+  probe 2026-11-08)
 - **Settings.json applicability.** The load-bearing headless policy file is
   `~/.gemini/antigravity-cli/settings.json`. A scratch-repo-only
   `.gemini/settings.json` did not apply when Antigravity failed to resolve an
@@ -1029,12 +1063,13 @@ absolute numbers**.
   returned the required anchored / external-claim / no-anchor sections without
   invoking tools. Plain-text parsing remains observationally weaker than
   Codex's structured output. Re-probe whenever the minimum version, permission
-  schema, or inline transport changes. **2026-11-08:** a re-probe on the
-  installed 1.5.3 is required before dispatch, but must **follow** the
-  deferred denial-regex / structured-output fix (§9 open warnings) and
-  should add an arm in which the model reaches for a tool and still
-  answers, so the 1.1.27+ notice is exercised. Pin the version (or disable
-  auto-update — see the header) between probe and dispatch. `[MEDIUM]`
+  schema, or inline transport changes. **2026-11-08:** re-probed on 1.5.3
+  **after** the JSON-envelope detection fix, with the exact new dispatcher
+  flags, including a tool-reach-then-answer arm (the run ended on the
+  denial with an empty response rather than answering — refused either
+  way). Passed; recorded in the frontmatter. The dispatcher sets
+  `AGY_CLI_DISABLE_AUTO_UPDATE=1` (effect untested); the version gate
+  remains the real guard against an unprobed binary. `[MEDIUM]`
 
 ## See also
 

@@ -81,17 +81,15 @@ the world:
 | a URL the doc relies on | an HTTP fetch returning 2xx for the *claim*, not just the host |
 
 **Who runs the command — and who only flags.** The cross-vendor
-reviewer is intended to run read-only (the dispatcher invokes `claude`
-with `--safe-mode --allowedTools "Read,Grep,Glob"` — ⚠️ as of
-2026-11-08 that is **not an enforced restriction**: `--allowedTools`
-auto-approves the listed tools rather than removing others, and user
-`permissions.allow` rules stay in force under `--safe-mode`; hardening
-is an open item in
-[`refresh-log.md`](../agents/refresh-log.md#open-items-carried-forward) —
-`codex` with `--sandbox read-only`,
-and Antigravity only after its strict-policy refusal probe — recorded
-on the exact installed `agy` version — and preflight pass, with the exact target embedded so no filesystem read grant is
-needed). It therefore **cannot** run these
+reviewer runs read-only (the dispatcher invokes `claude` with
+`--safe-mode --tools "Read,Grep,Glob"` — `--tools` removes every other
+tool, so the operator's own `permissions.allow` rules cannot hand the
+reviewer Bash or network access (behaviorally probed 2026-11-08);
+`codex` with `--sandbox read-only`; and Antigravity only after its
+strict-policy refusal probe — recorded on the exact installed `agy`
+version — and preflight pass, with the exact target embedded so no
+filesystem read grant is needed, and the review refused unless agy's
+JSON output reports no denied tool actions). It therefore **cannot** run these
 commands, and must not be told to. Its job is to **spot** every
 externally-falsifiable claim in the diff and list them for
 verification. The **execution** happens at a layer that has
@@ -118,6 +116,17 @@ confirmation of the claim on the page.
 | **Tier 2** | Different vendor mandatory (lighter resolution bar than Tier 1) | Same |
 | **Tier 3** | Same-vendor self-review with this rubric in fresh context | CI is the main gate; rubric catches obvious misses |
 | **Tier 4** | Skipped | Pre-commit hooks suffice |
+
+**Reviewer model.** The dispatcher pins the reviewer's model by tier
+(`--tier workhorse|frontier|light`, default `workhorse`, per the
+"Code review on a Tier 1 / Tier 2 PR → workhorse" row in
+[`model-capabilities.md`](../agents/model-capabilities.md)), so a
+review never inherits the operator's personal model. The worker — the
+model that authored the change — may escalate (e.g. `frontier` for a
+security-heavy Tier 1 diff) or step down, and records the tier and the
+reason in the chat checkpoint's audit trail. The dispatcher prints the
+resolved `Reviewer: <vendor> / <model> (tier: …)` line on stderr for
+that purpose.
 
 ## The reviewer prompt template (paste into the cross-vendor call)
 

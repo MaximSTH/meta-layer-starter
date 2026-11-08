@@ -18,11 +18,12 @@ own that process, not rent it from one vendor. If an agent saying
 
 **Recent — 2026-11-08 vendor refresh.** All three vendor knowledge files
 re-walked against Claude Code 2.1.319, Codex 0.162.1 and Antigravity 1.5.3.
-Two known gaps in the cross-vendor dispatcher are open and being fixed:
-Antigravity's newer headless denial notice slips past the fail-closed check
-(so Antigravity review stays **disabled** until it's fixed and re-probed),
-and Codex reviews inherit your personal Codex model instead of a pinned
-workhorse. Details in [`refresh-log.md`](markdowns/agents/refresh-log.md).
+The walk exposed gaps in the cross-vendor dispatcher, now fixed and
+behaviorally tested: reviews pin their model by tier (`--tier`, default
+workhorse) instead of inheriting your personal one, Claude reviews get
+read-only tools only, and Antigravity reviews fail closed on any denied
+tool action via its JSON output. Details in
+[`refresh-log.md`](markdowns/agents/refresh-log.md).
 
 ## What this template gives you
 
@@ -50,6 +51,7 @@ Install pointers per CLI:
 
 Optional tooling some scripts use:
 - **`python3`**: `scripts/setup.sh` uses Python to update the refresh-vendor skill's hardcoded vendor list when you prune vendors. Pre-installed on macOS and most Linux distros. Without it, setup.sh warns and skips that one step.
+- **`python3` or `jq`** (Antigravity reviews only): `scripts/cross-vendor-review.sh --to antigravity` reads agy's JSON output with one of them to verify no tool action was denied. With neither installed, Antigravity review is refused (fails closed).
 
 ## Quick start
 

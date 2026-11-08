@@ -28,6 +28,7 @@ FROM="claude"
 TO="codex"
 TARGET=""
 BRIEF=""
+TIER="workhorse"
 RUBRIC="markdowns/protocols/cross-vendor-review.md"
 
 while [ $# -gt 0 ]; do
@@ -37,9 +38,10 @@ while [ $# -gt 0 ]; do
     --rubric) RUBRIC="$2"; shift 2;;
     --target) TARGET="$2"; shift 2;;
     --brief) BRIEF="$2"; shift 2;;
+    --tier) TIER="$2"; shift 2;;
     -h|--help)
       cat <<EOF >&2
-Usage: $0 --target <path> [--from claude] [--to claude|codex|antigravity] [--rubric <path>] [--brief <path>]
+Usage: $0 --target <path> [--from claude] [--to claude|codex|antigravity] [--tier workhorse|frontier|light] [--rubric <path>] [--brief <path>]
 
 Options:
   --target  Path or diff to review. Required.
@@ -47,6 +49,10 @@ Options:
   --to      Peer vendor running the review. Default: codex.
   --rubric  Path to a markdown file containing a <!-- RUBRIC START --> ... <!-- RUBRIC END --> delimited prompt block. Default: $RUBRIC.
   --brief   Optional path to a session brief; included as an anchor source for scope claims.
+  --tier    Reviewer model tier. Default: workhorse (Tier 1/2 review per
+            markdowns/agents/model-capabilities.md). The worker may escalate
+            (frontier, e.g. a security-heavy Tier 1 diff) or step down
+            (light); record the choice and reason in the chat checkpoint.
 EOF
       exit 0;;
     *) echo "Unknown arg: $1" >&2; exit 2;;
@@ -56,6 +62,36 @@ done
 [ -n "$TARGET" ] || { echo "Error: --target is required. Run with -h for usage." >&2; exit 2; }
 [ -r "$RUBRIC" ] || { echo "Error: rubric file not readable: $RUBRIC" >&2; exit 2; }
 [ -z "$BRIEF" ] || [ -r "$BRIEF" ] || { echo "Error: brief not readable: $BRIEF" >&2; exit 2; }
+
+# quotes: markdowns/agents/model-capabilities.md#per-vendor-tier-mapping
+# Tier -> per-vendor reviewer model. Declared quote of that mapping (SSOT,
+# 2026-11-08); the mapping table points back here, so a model-drift
+# consistency sweep (refresh-vendor.md) finds and updates both. The reviewer model is pinned
+# here so a review never inherits the operator's personal model (a
+# frontier model on the reference machine for codex — 2026-11-08 walk).
+case "$TIER" in
+  workhorse|frontier|light) ;;
+  *) echo "Error: unknown --tier: $TIER (workhorse|frontier|light)" >&2; exit 2;;
+esac
+case "$TO:$TIER" in
+  claude:frontier)        REVIEW_MODEL="opus";;
+  claude:workhorse)       REVIEW_MODEL="sonnet";;
+  claude:light)           REVIEW_MODEL="haiku";;
+  codex:frontier)         REVIEW_MODEL="gpt-6-astra";;
+  codex:workhorse)        REVIEW_MODEL="gpt-6.1-sol";;
+  codex:light)            REVIEW_MODEL="gpt-6-luna";;
+  # agy's catalog is account-dependent and exposes no frontier Gemini on
+  # the reference account; frontier review routes to another vendor.
+  antigravity:workhorse)  REVIEW_MODEL="gemini-3.8-flash-high";;
+  antigravity:light)      REVIEW_MODEL="gemini-3.8-flash-low";;
+  antigravity:frontier)
+    echo "Error: no frontier-tier model is mapped for antigravity (see model-capabilities.md). Use --to codex or --to claude for a frontier review." >&2
+    exit 2;;
+  *)
+    echo "Error: no reviewer model mapped for --to $TO --tier $TIER." >&2
+    echo "Supported vendors: claude | codex | antigravity (add a vendor's tier rows here when adding it)." >&2
+    exit 2;;
+esac
 
 # Extract the rubric prompt block delimited by HTML comments.
 # The block is expected to contain a single code fence; we strip the fence
@@ -84,7 +120,7 @@ fi
 # clear install pointer rather than a generic shell error.
 case "$TO" in
   claude)      BINARY="claude";      INSTALL_URL="https://code.claude.com";;
-  codex)       BINARY="codex";       INSTALL_URL="npm install -g @openai/codex  (docs: https://developers.openai.com/codex/cli)";;
+  codex)       BINARY="codex";       INSTALL_URL="npm install -g @openai/codex  (docs: https://learn.chatgpt.com/docs/codex/cli)";;
   antigravity) BINARY="agy";         INSTALL_URL="https://antigravity.google";;
   *)
     echo "Error: unknown peer vendor: $TO" >&2
@@ -98,6 +134,10 @@ if ! command -v "$BINARY" >/dev/null 2>&1; then
   echo "Or re-run with a different peer vendor: --to <claude|codex|antigravity>" >&2
   exit 4
 fi
+
+# Audit line for the chat checkpoint: which reviewer model ran, and at
+# which tier (stderr, so it never mixes into the review body).
+echo "Reviewer: $TO / $REVIEW_MODEL (tier: $TIER)" >&2
 
 BRIEF_SECTION=""
 if [ -n "$BRIEF" ]; then
@@ -139,11 +179,20 @@ case "$TO" in
     # project with a sentinel SessionStart hook — plain `-p` created the
     # sentinel (exposure demonstrated); `--safe-mode` did not, and the
     # run completed under subscription OAuth. Not help-text-sourced.
-    # --model sonnet: Tier 1/2 review is Sonnet-tier per
-    # markdowns/agents/model-capabilities.md heuristics — do not inherit
-    # the operator's session model. </dev/null: never leave a vendor CLI
-    # waiting on stdin.
-    OUT=$(with_timeout claude -p "$PROMPT" --safe-mode --model sonnet --allowedTools "Read,Grep,Glob" </dev/null 2>&1) || RC=$?
+    # --tools "Read,Grep,Glob" is the actual read-only restriction:
+    # --safe-mode keeps the operator's user-level permissions.allow rules
+    # in force, and --allowedTools only AUTO-APPROVES the listed tools —
+    # it removes nothing. BEHAVIORALLY PROBED 2026-11-08 (v2.1.319), three
+    # arms in a scratch repo, stream-json init + tool_use events:
+    # (A) current flags without --tools: 26 tools at init; the reviewer
+    # ran `gh api /zen` via a user `Bash(gh api:*)` allow rule (exposure
+    # demonstrated); (B) with --tools: init tools exactly Glob/Grep/Read,
+    # reply "NO_BASH"; (C) with --tools: Read of a nonce file succeeded,
+    # so review reads still work.
+    # --model "$REVIEW_MODEL": tier-resolved (default workhorse = sonnet);
+    # never the operator's session model. </dev/null: never leave a vendor
+    # CLI waiting on stdin.
+    OUT=$(with_timeout claude -p "$PROMPT" --safe-mode --model "$REVIEW_MODEL" --tools "Read,Grep,Glob" --allowedTools "Read,Grep,Glob" </dev/null 2>&1) || RC=$?
     ;;
   codex)
     TMP=$(mktemp)
@@ -167,10 +216,20 @@ $(cat "$TARGET")
     # when stdin is not a TTY and blocks awaiting EOF ("Reading additional
     # input from stdin..."), so without it this branch hangs forever in
     # any non-interactive context (codex-cli.md §9, verified 2026-08-25).
-    # The effort override is also load-bearing: exec inherits the
-    # operator's global model_reasoning_effort (xhigh on the reference
-    # machine), which pushed a 553-line review past 9 minutes.
-    COMBINED=$(with_timeout codex exec --sandbox read-only -c 'model_reasoning_effort="medium"' --output-last-message "$TMP" "$CODEX_PROMPT" </dev/null 2>&1) || RC=$?
+    # exec inherits the operator's ~/.codex/config.toml, so every
+    # operator-level setting that matters is overridden explicitly:
+    # -m: tier-resolved model (default workhorse = gpt-6.1-sol). Without
+    #   it the review ran on the operator's model — gpt-6-astra (frontier,
+    #   ~5x the credits) on the reference machine (2026-11-08 walk).
+    # model_reasoning_effort: the operator's global effort (xhigh on the
+    #   reference machine) pushed a 553-line review past 9 minutes.
+    # notify=[]: the operator's turn-ended notify hook fired on every
+    #   scripted exec — on the reference machine a Computer Use client that
+    #   raised a macOS Automation prompt mid-review (2026-11-08).
+    #   PROBED 2026-11-08 (codex 0.162.1, real turns): -c notify=["touch",
+    #   <sentinel>] created the sentinel, so a -c value REPLACES the config
+    #   hook; -c notify=[] then runs none.
+    COMBINED=$(with_timeout codex exec -m "$REVIEW_MODEL" --sandbox read-only -c 'model_reasoning_effort="medium"' -c 'notify=[]' --output-last-message "$TMP" "$CODEX_PROMPT" </dev/null 2>&1) || RC=$?
     OUT=$(cat "$TMP")
     [ -z "$OUT" ] && OUT="$COMBINED"
     rm -f "$TMP"
@@ -241,9 +300,25 @@ $(cat "$TARGET")
     # No --read-only flag: effective read-only review depends on the checked
     # restrictive policy plus the refusal probe, not on prompt text alone.
     # The exact target is also transported inline so strict mode needs no read
-    # grant. Output is plain text (no --output-format json); parsing relies on
-    # the rubric's anchored/no-anchor section headers.
-    # See markdowns/agents/vendor-knowledge/antigravity-cli.md.
+    # grant. See markdowns/agents/vendor-knowledge/antigravity-cli.md §9.
+    #
+    # Output is --output-format json and denial detection reads the
+    # envelope, not prose: agy exits 0 on a permission denial, and since
+    # 1.1.27 a second denial notice exists that the old text regex missed.
+    # The review is REFUSED (exit 4) unless the envelope parses, status is
+    # SUCCESS, denied_actions is empty, finished_reason is absent (present
+    # only on print_timeout / interrupted / error), and response is
+    # non-empty. A widened text grep stays as belt-and-braces.
+    #
+    # No --mode plan: since 1.1.28 headless runs auto-proceed through plan
+    # review, so it gates nothing — and in the 2026-11-08 probe on 1.5.3 it
+    # made a benign "Reply with exactly: OK" prompt reach for a shell
+    # command (denied => empty review) in 2 of 3 plan-mode runs, vs 0 of 4
+    # without it. Strict toolPermission is the write barrier.
+    # AGY_CLI_DISABLE_AUTO_UPDATE=1: any agy invocation can spawn the
+    # vendor auto-updater (observed 2026-11-08). The env var is present in
+    # the binary but its effect is untested; the probe-version gate above
+    # is what actually catches a mid-stream update (on the next run).
     [ -f "$TARGET" ] || {
       echo "Error: Antigravity strict-mode review requires --target to be a readable file." >&2
       exit 4
@@ -263,22 +338,110 @@ commands, or inspect any path. Review only the embedded artifact.
 --- BEGIN EXACT REVIEW TARGET ---
 $AGY_TARGET_BODY
 --- END EXACT REVIEW TARGET ---"
-    OUT=$(with_timeout agy --print "$AGY_PROMPT" --mode plan --sandbox --print-timeout 5m </dev/null 2>&1) || RC=$?
+    AGY_ERR=$(mktemp)
+    AGY_JSON=$(AGY_CLI_DISABLE_AUTO_UPDATE=1 with_timeout agy --print "$AGY_PROMPT" --sandbox --print-timeout 5m --model "$REVIEW_MODEL" --output-format json </dev/null 2>"$AGY_ERR") || RC=$?
+    AGY_STDERR=$(cat "$AGY_ERR"); rm -f "$AGY_ERR"
+    # Parse the envelope: prints "OK" then the response on success, or
+    # "REFUSE <reason>" when any fail-closed condition holds.
+    agy_parse() {
+      if command -v python3 >/dev/null 2>&1; then
+        python3 -I -c '
+import json, sys
+raw = sys.stdin.read()
+i = raw.find("{")
+try:
+    d = json.loads(raw[i:]) if i >= 0 else None
+except ValueError:
+    d = None
+if not isinstance(d, dict):
+    print("REFUSE unparseable JSON envelope"); sys.exit()
+if d.get("status") != "SUCCESS":
+    print("REFUSE status=%s" % d.get("status")); sys.exit()
+if d.get("denied_actions") not in (None, []):
+    print("REFUSE denied_actions=%s" % json.dumps(d["denied_actions"])); sys.exit()
+# Presence, not truthiness: a normal turn omits the key entirely (observed
+# 1.5.3), so any finished_reason -- even "" or null -- means not-normal.
+if "finished_reason" in d:
+    print("REFUSE finished_reason=%s" % json.dumps(d["finished_reason"])); sys.exit()
+r = d.get("response")
+if not isinstance(r, str) or not r.strip():
+    print("REFUSE empty response"); sys.exit()
+print("OK"); sys.stdout.write(r)
+'
+      elif command -v jq >/dev/null 2>&1; then
+        # -s slurps the whole input first, so trailing junk is a parse
+        # error before anything is printed, and exactly ONE envelope is
+        # required (a stream of envelopes could otherwise print OK for the
+        # first and accept a denied second). No "{" at all leaves jq with
+        # no output; the final fallback turns that into a refusal.
+        { sed -n '/{/,$p' | jq -rs '
+          if length != 1 then "REFUSE expected exactly one JSON envelope"
+          else .[0] |
+          if type != "object" then "REFUSE unparseable JSON envelope"
+          elif .status != "SUCCESS" then "REFUSE status=\(.status)"
+          elif (.denied_actions != null) and (.denied_actions != []) then "REFUSE denied_actions=\(.denied_actions | tojson)"
+          elif has("finished_reason") then "REFUSE finished_reason=\(.finished_reason | tojson)"
+          elif ((.response | type) != "string") or ((.response | test("\\S")) | not) then "REFUSE empty response"
+          else "OK\n" + .response end end' 2>/dev/null || echo "REFUSE unparseable JSON envelope"; } |
+          { IFS= read -r first || { echo "REFUSE unparseable JSON envelope"; exit 0; }; printf '%s\n' "$first"; cat; }
+      else
+        echo "REFUSE neither python3 nor jq is available to verify the agy JSON envelope"
+      fi
+    }
+    if [ "$RC" -eq 0 ]; then
+      AGY_PARSED=$(printf '%s' "$AGY_JSON" | agy_parse)
+      case "$AGY_PARSED" in
+        OK*) OUT=$(printf '%s' "$AGY_PARSED" | sed '1d');;
+        *)
+          echo "Error: Antigravity review dispatch failed closed: ${AGY_PARSED#REFUSE }." >&2
+          echo "The inline review contract requires a tool-free, complete response; no review was accepted." >&2
+          exit 4;;
+      esac
+    else
+      # agy failed (1.5.x exits 3 on a print timeout or partial-then-error,
+      # and the envelope may carry a PARTIAL response). Never surface the
+      # envelope or any response text: OUT is agy's stderr only, which is
+      # where its AGY_ERROR / rate-limit messages go. The rate-limit check
+      # and exit-code remap below then run on that.
+      OUT="$AGY_STDERR"
+      echo "Error: Antigravity exited $RC; no review was accepted." >&2
+    fi
     ;;
 esac
 
 # Rate-limit detection: a non-zero RC with a rate-limit-shaped error
 # message means "try a different vendor," not "the review failed."
-if [ "$RC" -ne 0 ] && printf '%s' "$OUT" | grep -qiE 'rate.?limit|quota|429|too many requests|usage limit'; then
+# (Here-strings, not `printf | grep -q`: under pipefail a large input can
+# SIGPIPE the printf when grep exits on first match, making the match read
+# as a failure.)
+if [ "$RC" -ne 0 ] && grep -qiE 'rate.?limit|quota|429|too many requests|usage limit' <<<"$OUT"; then
   echo "Rate limit hit on $TO. Re-run with --to <other-vendor>." >&2
   exit 3
 fi
 
+# Belt-and-braces text check for Antigravity (the JSON envelope check in
+# the branch above is primary). Matches both denial notices: the
+# 1.1.20-era "no output produced — a tool required the ... permission"
+# and the 1.1.27+ "the X tool(s) required approval that headless mode
+# cannot prompt for, so they were auto-denied". Scans agy's STDERR only —
+# the notice goes there (verified 2026-11-08, 1.5.3) while stdout carries
+# the JSON envelope; scanning the review body would false-refuse any review
+# of a diff that merely mentions these phrases.
 if [ "$TO" = "antigravity" ] &&
-   printf '%s' "$OUT" | grep -qiE 'no output produced.*permission.*(denied|required)|tool required.*permission'; then
+   grep -qiE 'no output produced.*permission|headless mode cannot prompt for|auto-denied|tool(\(s\))? required.*(permission|approval)' <<<"${AGY_STDERR:-}"; then
   echo "Error: Antigravity review dispatch failed closed because strict mode denied a tool request." >&2
   echo "The inline review contract requires a tool-free response; no review was accepted." >&2
   exit 4
+fi
+
+# The dispatcher reserves exit 2 (usage), 3 (rate limit: try another
+# vendor) and 4 (refused / fail-closed). A peer CLI's own exit code must
+# not masquerade as one of those — agy exits 3 on a print timeout (1.5.0)
+# and on any agent/model API failure (1.2.6), which would otherwise read
+# as "rate limited, re-run elsewhere". Remap colliding codes to 1.
+if [ "$RC" -eq 2 ] || [ "$RC" -eq 3 ] || [ "$RC" -eq 4 ]; then
+  echo "Error: peer vendor $TO exited $RC (remapped to 1; 2/3/4 are reserved by this dispatcher)." >&2
+  RC=1
 fi
 
 printf '%s\n' "$OUT"
