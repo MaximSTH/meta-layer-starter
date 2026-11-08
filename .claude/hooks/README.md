@@ -3,8 +3,10 @@
 These hooks are **Claude-Code-specific by design**. Claude Code exposes
 33 hook events (`PreToolUse`, `PostToolUse`, `SessionStart`, etc.);
 Codex CLI has 12 with different names and semantics; Antigravity
-documents 6, also distinct. Counts are canonical in
-[`cross-vendor-harness.md`](../../markdowns/meta-layer/cross-vendor-harness.md). **There is no portable
+documents 6, also distinct. Each count is authoritative in its vendor
+file under
+[`markdowns/agents/vendor-knowledge/`](../../markdowns/agents/vendor-knowledge/)
+(§4); this line quotes them as of 2026-11-08. **There is no portable
 abstraction across vendors.** Hooks that need to run cross-vendor must
 be re-authored per-vendor in each vendor's hook surface.
 

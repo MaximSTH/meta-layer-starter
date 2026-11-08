@@ -35,9 +35,11 @@ as a fallback** when no `CLAUDE.md`, `.claude/CLAUDE.md` or
 this repo has a `CLAUDE.md`, a `CLAUDE.local.md` silently suppresses the
 fallback, and adopters on older versions get nothing without it.
 Supervisor ruling 2026-11-08: keep the sync. Details in
-[`claude-code.md`](../agents/vendor-knowledge/claude-code.md) §1. The path is `.gemini/` because Antigravity
-inherits its config root from there; the file is Antigravity's, not
-Gemini's. Gemini CLI is no longer an active vendor in this template.
+[`claude-code.md`](../agents/vendor-knowledge/claude-code.md) §1.
+
+The `.gemini/` path is because Antigravity inherits its config root
+from there; the file is Antigravity's, not Gemini's. Gemini CLI is no
+longer an active vendor in this template.
 
 **Skills are the same story as `AGENTS.md`, not a Claude-only feature.**
 `.agents/skills/` is the canonical source *because* it is the open
@@ -140,8 +142,10 @@ convention is documented for forward use.
 
 Hooks. Claude Code has 33 hook events (`PreToolUse`, `PostToolUse`,
 `SessionStart`, etc. — count verified 2026-11-08 at 2.1.319;
-`PreModelSwitch` / `PostModelSwitch` added in v2.1.251). Codex has 12
-at 0.162.1 (14 documented for 0.164+), with different names and
+`PreModelSwitch` / `PostModelSwitch` added in v2.1.251; counts quoted
+from each vendor file's §4, which is authoritative). Codex has 12
+at 0.162.1 (14 documented for 0.164+ — `low-confidence`, beyond the
+installed binary), with different names and
 semantics. Antigravity documents 6 (`SessionStart`, `PreToolUse`,
 `PostToolUse`, `PreInvocation`, `PostInvocation`, `Stop`; command
 handlers only). There is no portable abstraction that covers

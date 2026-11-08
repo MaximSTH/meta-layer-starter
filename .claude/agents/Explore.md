@@ -32,4 +32,4 @@ note quotes it. If you delete this file, the built-in returns and
 inherits the session model. The pin is a DEFAULT, not enforcement: a
 per-invocation `model` on the Agent tool call overrides it, and only the
 operator env var CLAUDE_CODE_SUBAGENT_MODEL_FORCE hard-enforces (claude-code.md
-§3, verified 2026-11-08). -->
+§3, 2026-11-08 — docs + tool schema, low-confidence: no override probe run). -->

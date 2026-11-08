@@ -137,7 +137,9 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   `cleanupPeriodDays` retention sweep. `CLAUDE_CODE_PROJECT_DIR_NAME`
   (v2.1.234+) pins the `<project>` directory name — it applies only when
   set **alongside `CLAUDE_CONFIG_DIR`**. Variable name present in the
-  binary strings at 2.1.319; runtime effect not executed. `[MEDIUM]`
+  binary strings at 2.1.319; runtime effect not executed
+  (**`low-confidence`** on the `CLAUDE_CONFIG_DIR` dependency — docs
+  only). `[MEDIUM]`
   ([code.claude.com/docs/en/memory](https://code.claude.com/docs/en/memory),
   binary strings 2.1.319)
 - **CLAUDE.md loading limits + scopes:** a CLAUDE.md up to **4 MiB**
@@ -352,8 +354,9 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   passes no model; they never tested an override. The documented
   resolution order is: (1) the per-invocation `model` parameter on the
   Agent tool call (an alias: `sonnet`/`opus`/`haiku`/`fable`; restored
-  v2.1.72), (2) the definition's `model:` frontmatter (`inherit` = main
-  model), (3) `CLAUDE_CODE_SUBAGENT_MODEL`, (4) the main conversation's
+  v2.1.72), (2) the definition's `model:` frontmatter (where
+  `model: inherit` selects the main model), (3) `CLAUDE_CODE_SUBAGENT_MODEL`
+  (where the value `inherit` is the same as leaving it unset), (4) the main conversation's
   model. So Claude can override `.claude/agents/Explore.md`'s pin on any
   call; the Agent tool schema shipped to the model says the same
   ("Takes precedence over the agent definition's model frontmatter").
@@ -370,14 +373,17 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   existed by v2.1.147 at the latest; before v2.1.251 it **overrode
   everything**, frontmatter and `model: inherit` included; since
   v2.1.251 it is a **default** below the per-invocation parameter and
-  the frontmatter (`inherit` = unset). `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`
+  the frontmatter (setting the variable itself to `inherit` = unset; it
+  also does not by itself change built-in Explore/Plan).
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`
   (v2.1.257) applies `CLAUDE_CODE_SUBAGENT_MODEL` (or the main model, if
   unset) to **every** subagent, teammate and workflow agent, ignoring
   frontmatter and per-invocation models — **the only hard enforcement**
   (forks and `model: inherit` forked skills still run on the main
   model). `CLAUDE_CODE_WORKFLOW_SUBAGENT_MODEL` (v2.1.296) does the same
   for workflow agents only. Both main variable names are in the binary
-  strings at 2.1.319; runtime effect not executed. No `settings.json`
+  strings at 2.1.319; runtime effect not executed (**`low-confidence`**
+  on the precedence/enforcement semantics — changelog + docs only). No `settings.json`
   key does this (`teammateDefaultModel` was removed in v2.1.234).
   `[MEDIUM]`
   ([code.claude.com/docs/en/sub-agents#choose-a-model](https://code.claude.com/docs/en/sub-agents),
@@ -544,8 +550,11 @@ when run with an API key. See the Agent SDK bullets below.**
   subscription's usage limits."* No new timeline announced.
   **Operational consequence:** scripted `claude -p` — including
   [`cross-vendor-review.sh`](../../../scripts/cross-vendor-review.sh) —
-  shares the interactive 5-hour window, so exhaustion recovers in
-  **hours**, not on a monthly credit refresh. The prior entry in this
+  draws from the same subscription limits as interactive use, not a
+  monthly credit. On Pro and Max that means the 5-hour window
+  (recovers in **hours**); on a verified **Ultra** account there is no
+  5-hour window, so exhaustion hits the weekly limit and can take
+  **days** (see "Recovery posture" below). The prior entry in this
   file asserted the credit as live fact; corrected 2026-08-25.
   Re-verified 2026-11-08: the June 15 pause notice still stands.
   ⚠️ Still a single-channel claim (that support article); re-verify
@@ -596,15 +605,15 @@ when run with an API key. See the Agent SDK bullets below.**
 - **Pro:** $17/mo annual ($200/yr) or $20/mo monthly. Includes Claude Code.
   `[VOLATILE]` ([claude.com/pricing](https://claude.com/pricing))
 - **Max:** $100/mo — 5× Pro usage per 5 hours and per week; Fable
-  included up to half the weekly limit; $100/mo API credits (§6). Now
+  included up to half the weekly limit; monthly API credits (amount in §6). Now
   a **single tier**. Includes Claude Code. `[VOLATILE]`
   ([support.claude.com/articles/11049741](https://support.claude.com/en/articles/11049741-what-is-the-max-plan),
   [claude.com/pricing](https://claude.com/pricing))
 - **Ultra (formerly Max 20x — RENAMED, corrected 2026-11-08):** $200/mo.
   "The Max 20x plan is now called the Ultra plan"; existing subscribers
   moved over with no price change. **10× Pro usage per week**, no 5-hour
-  limit for verified accounts, a separate weekly Fable limit, $200/mo
-  API credits (§6). Includes Claude Code. The earlier "pricing page
+  limit for verified accounts, a separate weekly Fable limit, monthly
+  API credits (amount in §6). Includes Claude Code. The earlier "pricing page
   mis-extracts $100 for Max 20x" caveat is obsolete. `[VOLATILE]`
   ([support.claude.com/articles/17728952](https://support.claude.com/en/articles/17728952-what-is-the-ultra-plan),
   [claude.com/pricing](https://claude.com/pricing))
@@ -649,7 +658,8 @@ when run with an API key. See the Agent SDK bullets below.**
   price with contracted rates via the `modelPricing` managed setting
   (v2.1.243; markup via `multiplier > 1` needs v2.1.271+). All figures
   are client-side estimates and can differ from the actual bill.
-  Changelog + docs; not executed (needs a billed session). `[MEDIUM]`
+  Changelog + docs; not executed (needs a billed session) —
+  **`low-confidence`** on the runtime mechanics. `[MEDIUM]`
   (CHANGELOG 2.1.239 / 2.1.243,
   [code.claude.com/docs/en/costs](https://code.claude.com/docs/en/costs))
 - **Per-call cost in headless mode:** `--output-format json` emits

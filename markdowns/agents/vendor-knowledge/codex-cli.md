@@ -298,15 +298,15 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   **Cross-vendor head-to-head — UPDATED 2026-11-08.** The Codex column
   is re-verified at binary 0.162.1. The Claude model rows follow the
   2026-11-08 `claude-code` walk (supervisor ruling); the Claude depth
-  and concurrency figures are carried from 2.1.220 and are not
-  re-verified here — [`claude-code.md`](claude-code.md) §3 is
+  and concurrency figures are quoted from the `claude-code` walk, which
+  re-verified them at 2.1.319 — [`claude-code.md`](claude-code.md) §3 is
   canonical for that column.
 
   | Axis | Codex CLI 0.162.1 | Claude Code (see `claude-code.md` §3) |
   |---|---|---|
-  | Default nesting depth | **unstated** (`agents.max_depth` exists; docs no longer give 1) | **3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`, 2.1.220) |
+  | Default nesting depth | **unstated** (`agents.max_depth` exists; docs no longer give 1) | **3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`, 2.1.319) |
   | Depth configurable? | Yes | Yes |
-  | Concurrency cap | **unstated** (`agents.max_concurrent_threads_per_session`; `max_threads` legacy alias) | **20** (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`, 2.1.220) |
+  | Concurrency cap | **unstated** (`agents.max_concurrent_threads_per_session`; `max_threads` legacy alias) | **20** (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`, 2.1.319) |
   | Per-session total cap | none documented | **none** (200 cap removed v2.1.224) |
   | Delegation default | **explicit request** (proactive only at the Ultra intelligence level) | **description-match auto-routing** |
   | Per-agent model pinning | `model` in agent TOML — schema-confirmed by execution; honored-at-spawn `low-confidence` | `model:` frontmatter, defaults `inherit`; overridable per invocation |
@@ -365,7 +365,7 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
 - **Subagent reasoning effort from the model catalog (`low-confidence`).**
   The bundled catalog (`codex debug models`, binary 0.162.1) carries
   `multi_agent_reasoning_effort: "xhigh"` on `gpt-6-astra` and
-  `gpt-6.1-sol`. The field's semantics are undocumented, but it
+  `gpt-6.1-sol` (the live catalog also on `gpt-6.1-terra`). The field's semantics are undocumented, but it
   suggests subagents spawned under those models default to `xhigh`, a
   cost-relevant default. Unverified at spawn. `[VOLATILE]`
 - **Cross-vendor commentary:** the explicit-request model applies to
@@ -454,8 +454,10 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
 - **Vendor coupling:** event names overlap conceptually with Claude Code's
   set (`SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`,
   `UserPromptSubmit`, `Stop`) but are NOT a 1:1 superset. Claude Code
-  exposes 33 events (as of v2.1.319, per the 2026-11-08 `claude-code`
-  walk); Codex has 12 at binary 0.162.1 (14 per docs). Cross-vendor
+  exposes 33 events (quoted from
+  [`claude-code.md`](claude-code.md) §4, v2.1.319 — that file is
+  authoritative for the Claude count); Codex has 12 at binary 0.162.1
+  (14 per docs, `low-confidence` for 0.164+). Cross-vendor
   parity is per-event translation, not a shared set. `[STABLE]`
 - **Repo posture:** hooks stay Claude-only by default. Codex hooks
   portabilized only when the hook prevents a destructive non-code
@@ -527,10 +529,13 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   (binary `codex login --help` 0.162.1,
   [learn.chatgpt.com/docs/auth](https://learn.chatgpt.com/docs/auth))
 - **Agent identity login REMOVED from the CLI:**
-  `codex login --with-agent-identity` is **absent** from
-  `codex login --help` 0.162.1 and is not on the auth docs page. Agent
-  identity survives only as internal plumbing in the release notes
-  (#34631, #37356). `[VOLATILE]` (binary `codex login --help` 0.162.1)
+  `codex login --with-agent-identity` is **rejected by the parser** at
+  0.162.1 (`error: unexpected argument '--with-agent-identity' found`,
+  verified by execution 2026-11-08 — so it is removed, not merely
+  hidden from help like the `--yolo` aliases) and is not on the auth
+  docs page. Agent identity still appears as plumbing in release notes
+  (#34631, #37356); whether any other entry point exposes it was not
+  checked. `[VOLATILE]` (execution + `codex login --help` 0.162.1)
 - **Status check:** `codex login status` prints the active `auth_mode`
   and exits 0 when authenticated. Useful as a CI gate. `[STABLE]`
   (binary `codex login --help` 0.162.1 lists `status`)
@@ -545,12 +550,10 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
 **Re-verify before relying.** As of 2026-11-08 the pricing page carries
 an active promotion: **"GPT-5.6 Sol's promotional pricing is available
 at least through November 21, 2026"** (learn.chatgpt.com/docs/pricing).
-The OpenAI API pricing page gives the GPT-5.6 Sol promo end as
-**November 30, 2026** (developers.openai.com/api/docs/pricing). **Both
-are recorded and neither is picked:** the Codex page's "at least
-through" phrasing is not strictly inconsistent with the API date, and
-the two pages may describe different surfaces (Codex credits vs API
-billing). Both are docs-only, read via a summarizing fetcher. The
+The API-billing promo end date is a different surface and lives in
+[`model-capabilities.md`](../model-capabilities.md) (OpenAI section);
+the two dates differ and are not reconciled here — the Codex page's
+"at least through" phrasing is not strictly inconsistent with it. Both are docs-only, read via a summarizing fetcher. The
 earlier Pro $100 2× boost expired 2026-05-31.
 
 - **Two windows, shared allowance:** Codex enforces a **5-hour rolling
@@ -586,9 +589,20 @@ earlier Pro $100 2× boost expired 2026-05-31.
   `[VOLATILE]` docs-only
   ([learn.chatgpt.com/docs/pricing](https://learn.chatgpt.com/docs/pricing))
 - **Model lineup (for Codex behavior only; SSOT is
-  [`model-capabilities.md`](../model-capabilities.md)).**
-  - The bundled catalog (`codex debug models`, binary 0.162.1, 11 slugs)
-    lists `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna`,
+  [`model-capabilities.md`](../model-capabilities.md)).** _Declared
+  quote: the slugs, retirement date and default model in this bullet
+  and in §9 are quoted from `model-capabilities.md` as of 2026-11-08;
+  if they disagree, that file wins. The per-model 5h ranges and credit
+  rates in this section are Codex-plan facts and live here._
+  - **Two catalogs.** With the operator's `CODEX_HOME`, `codex debug
+    models` reads the **live, server-refreshed** catalog
+    (`~/.codex/models_cache.json`; 2026-11-08 refresh by a 0.164.0
+    client), which lists `gpt-6.1-sol`, `gpt-6-astra`, **`gpt-6.1-terra`**,
+    `gpt-6-sol`, `gpt-6-luna`, `gpt-5.6-sol/terra/luna`, plus hidden
+    `gpt-reserve` and `codex-auto-review` (no `gpt-5.5`, no daybreak
+    slugs). The live catalog is account- and time-dependent. An
+    unconfigured scratch `CODEX_HOME` shows the **bundled** offline
+    catalog (binary 0.162.1, 11 slugs), which lists `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna`,
     `gpt-5.6-sol/terra/luna` ("Older…") and `gpt-5.5` ("Legacy coding
     model"). Hidden slugs are `gpt-daybreak-blue/red-latest` (cyber,
     gated) and `codex-auto-review`.
@@ -596,7 +610,9 @@ earlier Pro $100 2× boost expired 2026-05-31.
     pricing page, and GPT-5.3-Codex-Spark is not on the pricing page.
   - GPT-5.5 retired from Codex with ChatGPT sign-in on 2026-10-14 (per
     the pricing page).
-  - `gpt-6.1-terra` arrives in rust-v0.165.0/0.166.0, `low-confidence`.
+  - `gpt-6.1-terra` is in the live catalog the 0.162.1 CLI already
+    reads (verified by execution 2026-11-08); release notes add it to
+    the *bundled* catalog in rust-v0.165.0/0.166.0 (`low-confidence`).
   - The chosen model shifts the 5h range above. The default model is
     covered in §9.
 
@@ -714,8 +730,9 @@ level (§3, §9).
   and shell invocation via [`cross-vendor-review.sh`](../../../scripts/)
   is still the answer. The revisit trigger ("any vendor ships
   first-party MCP server") fired 2026-06-10 on `codex mcp-server`; that
-  instance **no longer exists** as of 0.154.0. No peer vendor in the
-  harness currently ships an MCP server mode. `[STABLE]`
+  instance **no longer exists** as of 0.154.0. Of the three harness
+  vendors, only Claude Code ships one (`claude mcp serve`); neither
+  Codex nor Antigravity does. `[STABLE]`
 - **Remote stdio executor:** `[mcp_servers.<name>]` supports a remote
   executor for running stdio servers off-box. This is distinct from
   server mode. `[MEDIUM]`
@@ -836,8 +853,10 @@ level (§3, §9).
   EOF**. Re-verified by execution 2026-11-08: `sleep 10 | codex exec
   "hi"` printed only that line and stayed blocked until a 6 s alarm;
   with `</dev/null` it proceeds immediately. It works when a human runs
-  it in a terminal and **hangs forever** in CI, background jobs or
-  piped contexts unless the caller closes stdin (`< /dev/null`).
+  it in a terminal, and in CI, background jobs or piped contexts it
+  **blocks for as long as stdin stays open** — indefinitely when the
+  inherited stdin never reaches EOF — unless the caller closes stdin
+  (`< /dev/null`).
   [`cross-vendor-review.sh`](../../../scripts/cross-vendor-review.sh)
   closes stdin on every vendor branch (fixed 2026-08-25). `[MEDIUM]`
   (execution + `codex exec --help` 0.162.1)

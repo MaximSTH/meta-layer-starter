@@ -54,7 +54,7 @@ Also out of scope:
   - `codex mcp-server` is removed.
   - Hook counts are 33 / 12 / 6.
   - The tier map is re-resolved: GPT-6.1 Sol is now Codex's workhorse; Sonnet 5.5 and Haiku 5.5 are Claude's workhorse and light tiers.
-- **C (Cross-cutting):** Model facts live in `model-capabilities.md` as the SSOT, and the vendor files link to it rather than restating it. Hook counts are canonical in `cross-vendor-harness.md`. Cross-file claims to check for consistency:
+- **C (Cross-cutting):** Model facts live in `model-capabilities.md` as the SSOT, and the vendor files link to it rather than restating it. Hook counts are authoritative in each vendor file's §4; `cross-vendor-harness.md` and `.claude/hooks/README.md` quote them. Cross-file claims to check for consistency:
   - claude-code.md §10 ↔ codex-cli.md §3.
   - antigravity-cli.md §8 ↔ cross-vendor-harness.md MCP section.
 - **P (Performance):** N/A for runtime, since this is docs only. Cost-relevant: the tier map now resolves the review workhorse to `gpt-6.1-sol`, which the Tier 1 PR will pin.

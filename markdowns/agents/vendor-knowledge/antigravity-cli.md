@@ -313,9 +313,10 @@ Source: [antigravity.google/docs/features?tab=cli](https://antigravity.google/do
   with "the full model and effort in a subagent's detail view, and a
   `model` field on each `subagents` entry in the status line JSON" — an
   observation surface that makes a behavioral test cheap. **Still
-  `low-confidence`:** what `inherit` resolves to when the parent *has* a
-  model (docs do not define it; parent-model is the inference), and
-  whether a pin is honored — no delegate-and-observe test has been run.
+  `low-confidence`:** the runtime behavior of `inherit` — the changelog
+  defines it as the parent's model (1.1.5: "defaulting to `inherit` (the
+  parent's model)") with a fast-tier fallback when the parent has none
+  (1.1.16), but neither is observed — and whether a pin is honored — no delegate-and-observe test has been run.
   Model facts themselves live in
   [`model-capabilities.md`](../model-capabilities.md) (SSOT).
   ([antigravity.google/docs/subagents](https://antigravity.google/docs/subagents),
@@ -613,8 +614,9 @@ absolute numbers**.
   describe Antigravity only as an MCP client, and `agy --help` /
   `agy help` 1.5.3 expose no MCP server subcommand. **Comparison flipped
   2026-11-08:** `codex mcp-server` was removed in Codex 0.154.0 (see
-  [`codex-cli.md`](codex-cli.md) §8), so **neither peer vendor ships an
-  MCP server mode** — Antigravity no longer "stands alone" here.
+  [`codex-cli.md`](codex-cli.md) §8), so **neither Codex nor Antigravity
+  ships an MCP server mode** (Claude Code does: `claude mcp serve`) —
+  Antigravity no longer "stands alone" among the review peers.
   **Different protocol, server mode exists:** `agy acp` (1.5.0) "runs the
   CLI as an Agent Client Protocol (ACP) server over stdio, so editors can
   use it as their agent" — ACP, not MCP. `agy help acp` 1.5.3 lists its
@@ -824,9 +826,12 @@ absolute numbers**.
   `--dangerously-skip-permissions`, with no "denied" after it). A possible
   plural rendering of (A) ("2 tools required …" without "no output
   produced" on the same line) would also be NOMATCH — **hypothetical**,
-  the rendered plural form is unobserved. **Impact:** a review that
-  reached for a tool, was denied, and still produced output is
-  **accepted** instead of refused — fail-open for *review integrity*. It
+  the rendered plural form is unobserved. **Impact (latent):** dispatch is
+  currently refused before `agy` runs, by the probe-version gate
+  (verified-on 1.1.20 ≠ installed 1.5.3). If dispatch were re-enabled
+  without fixing detection, a review that reached for a tool, was
+  denied, and still produced output would be **accepted** instead of
+  refused — fail-open for *review integrity*. It
   is not a write-safety failure: strict `toolPermission` still refuses
   the write. Before 1.1.27 such denials were silent, so the 1.1.20 probe
   could not have exercised this. **Better detection path (for the Tier 1
@@ -896,7 +901,9 @@ absolute numbers**.
   1.1.20 print-mode fix, which contradicts this file's older "plain text
   only. NO `--output-format json`" claim — that claim is now
   **verified-false** and is corrected above. `[MEDIUM]` (`agy changelog`)
-- **Added since 1.1.20 (flags/subcommands, `agy --help` 1.4.12 + 1.5.3):**
+- **Flags/subcommands present at 1.5.3 not previously recorded in this
+  file** (`agy --help` 1.4.12 + 1.5.3; not all are new since 1.1.20 —
+  `--effort` dates to 1.1.5 and `--agent` to 1.1.1, see §9/§3):
   `--effort`, `--settings` (session-only, never saved — see §1),
   `--disable-slash-commands` (print mode expands leading `/skill` prompts
   since 1.1.9; this disables it), `--log-file`, `-i/--prompt-interactive`,
@@ -925,7 +932,7 @@ absolute numbers**.
 - **Cross-vendor review flag set** (consumed by `scripts/cross-vendor-review.sh` per [`cross-vendor-review.md`](../../protocols/cross-vendor-review.md)):
 
   ```
-  agy -p "<prompt>" --mode plan --sandbox
+  agy --print "<prompt>" --mode plan --sandbox --print-timeout 5m </dev/null
   ```
 
   Five controls / caveats:
@@ -986,8 +993,13 @@ absolute numbers**.
   it is now a **dispatcher gap, not a vendor limitation**, and is
   fixable by adopting `--output-format json`. Tracked as a residual.
   2026-11-08: the JSON envelope now also exposes `denied_actions` and
-  `finished_reason` (§9), which would replace the denial text-grep as well
-  as the header string-matching — folded into the deferred Tier 1 PR (R4).
+  `finished_reason` (§9). Those fields describe the **execution
+  outcome**, so they can replace the denial text-grep (refuse on
+  non-empty `denied_actions` / present `finished_reason`, once their
+  semantics are probed). They do **not** replace the rubric-header
+  parsing: that needs a review-observation schema via `--json-schema`
+  plus matching dispatcher changes. Both folded into the deferred
+  Tier 1 PR (R4).
   `[MEDIUM]` (`agy --help` 1.1.19 / 1.5.3, `agy changelog` 1.1.27/1.4.11)
 - **Settings.json applicability.** The load-bearing headless policy file is
   `~/.gemini/antigravity-cli/settings.json`. A scratch-repo-only
@@ -1032,5 +1044,5 @@ absolute numbers**.
   downstream consumer (cross-vendor review rubric, the cross-vendor review script).
 - [`markdowns/meta-layer/cross-vendor-harness.md`](../../meta-layer/cross-vendor-harness.md) —
   cross-vendor topology + sync mechanics (Antigravity reads
-  `AGENTS.md` via the project-level `.gemini/settings.json`
-  `context.fileName` override).
+  `AGENTS.md` natively per its rules docs; the `.gemini/settings.json`
+  `context.fileName` override is retained, effect unverified — §1).

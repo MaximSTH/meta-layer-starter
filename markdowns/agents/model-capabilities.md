@@ -71,10 +71,10 @@ upstream CHANGELOG)
 | **Codex** | Agentic-coding via CLI (`codex exec`); structured output | per model | The CLI binary is what we call into via `cross-vendor-review.sh`. Runs the GPT-6.x family; bundled default with no config is `gpt-6.1-sol` (codex 0.162.1 catalog + exec banner). Reasoning efforts `low…max` plus new `ultra` (not on Luna). ⚠️ The dispatcher passes no `-m`, so it inherits the operator's global model — open residual, see [`codex-cli.md`](vendor-knowledge/codex-cli.md) §9. `[VOLATILE]` |
 | **GPT-6 Astra** (`gpt-6-astra`) | OpenAI frontier tier | $10 / $50 | Catalog label "Frontier intelligence". `[VOLATILE]` |
 | **GPT-6.1 Sol** (`gpt-6.1-sol`) | OpenAI workhorse | $2 / $10 | Catalog label "Latest workhorse"; Codex default. `[VOLATILE]` |
-| **GPT-6.1 Terra** (`gpt-6.1-terra`) | Cheaper workhorse | $1 / $5 | On the API pricing page; NOT in the codex 0.162.1 bundled catalog (release notes place it at 0.165/0.166 — low-confidence for Codex). `[VOLATILE]` |
+| **GPT-6.1 Terra** (`gpt-6.1-terra`) | Cheaper workhorse-class model | $1 / $5 | Listed (visibility `list`, priority 3) in the **live** Codex model catalog the 0.162.1 CLI reads from `~/.codex/models_cache.json` (server-refreshed 2026-11-08 by a 0.164.0 client) — absent only from the *bundled* offline catalog of an unconfigured `CODEX_HOME`. Catalog gives it no role label ("GPT-6.1 Terra Codex model"). `[VOLATILE]` |
 | **GPT-6 Luna** (`gpt-6-luna`) | OpenAI light tier | $0.10 / $0.50 | Catalog label "Fast and affordable". `[VOLATILE]` |
 | **GPT-6 Sol** (`gpt-6-sol`) | Prior workhorse | $2 / $10 | Still in the Codex catalog. `[VOLATILE]` |
-| **GPT-5.6 Sol / Terra / Luna** | Prior generation ("Older" in the Codex catalog) | $4/$20 · $2/$12 · $0.20/$1.20 | GPT-5.6 Sol promo: the API pricing page says "until November 30, 2026"; learn.chatgpt.com says "at least through November 21, 2026" — sources conflict, both recorded. `[VOLATILE]` |
+| **GPT-5.6 Sol / Terra / Luna** | Prior generation ("Older" in the Codex catalog) | $4/$20 · $2/$12 · $0.20/$1.20 | GPT-5.6 Sol API promo: "available until November 30, 2026" (API pricing page). The Codex-plan promo date is a separate surface — see [`codex-cli.md`](vendor-knowledge/codex-cli.md) §6. `[VOLATILE]` |
 | **GPT-5.5 / 5.4 family** | Legacy / API-only | 5.5 $5/$30 · 5.4 $2.50/$15 · 5.4-Mini $0.75/$4.50 · 5.4-Nano $0.20/$1.25 | GPT-5.5 retired from Codex ChatGPT sign-in 2026-10-14 (catalogued "Legacy"); 5.4 / 5.4-Mini absent from the Codex catalog. `[VOLATILE]` |
 
 **Source:** [developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing)
@@ -130,17 +130,20 @@ Prices deliberately NOT restated here — the per-vendor model tables
 above are the SSOT for rates (per the AGENTS.md "SSOT for shared
 values" rule); this mapping names models only.
 
-Mapping notes: OpenAI column resolves against the codex 0.162.1
-bundled catalog (`codex debug models`) — GPT-6.1 Terra is cheaper than
-6.1 Sol on the API but absent from that catalog, so it is not the
-mapped Codex workhorse until the installed binary lists it. Google
+Mapping notes: OpenAI column resolves against the live Codex model
+catalog (`codex debug models` with the operator's `CODEX_HOME`,
+2026-11-08). The workhorse cell is GPT-6.1 Sol because the catalog
+itself labels it "Latest workhorse model for coding and everyday work"
+(priority 1). GPT-6.1 Terra is half Sol's price and also listed, but
+carries no role label; whether it is review-grade is unassessed — a
+supervisor decision, not a catalog fact. Google
 column: `agy models` (agy 1.5.3) is **account-dependent and
 server-side** — the reference account lists only Gemini 3.8 Flash plus
 brokered models, so the frontier cell names the API model and the agy
 subagent tier aliases (`inherit` / `flash` / `pro`) instead of an agy
 model ID. On the model ID, effort is still baked in
 (`-high|-medium|-low`), but agy also has a separate `--effort` flag
-since 1.4.x. Antigravity **brokers non-Google models**, so "which
+(since 1.1.5). Antigravity **brokers non-Google models**, so "which
 vendor CLI" and "which model family" are independent axes there.
 
 ## Model selection heuristics
