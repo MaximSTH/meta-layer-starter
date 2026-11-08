@@ -379,7 +379,7 @@ print("OK"); sys.stdout.write(r)
           else .[0] |
           if type != "object" then "REFUSE unparseable JSON envelope"
           elif .status != "SUCCESS" then "REFUSE status=\(.status)"
-          elif (.denied_actions // []) != [] then "REFUSE denied_actions=\(.denied_actions | tojson)"
+          elif (.denied_actions != null) and (.denied_actions != []) then "REFUSE denied_actions=\(.denied_actions | tojson)"
           elif has("finished_reason") then "REFUSE finished_reason=\(.finished_reason | tojson)"
           elif ((.response | type) != "string") or ((.response | test("\\S")) | not) then "REFUSE empty response"
           else "OK\n" + .response end end' 2>/dev/null || echo "REFUSE unparseable JSON envelope"; } |
