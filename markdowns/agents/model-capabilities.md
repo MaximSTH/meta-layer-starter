@@ -68,7 +68,7 @@ upstream CHANGELOG)
 
 | Model | Best for | Cost tier | Notes |
 |---|---|---|---|
-| **Codex** | Agentic-coding via CLI (`codex exec`); structured output | per model | The CLI binary is what we call into via `cross-vendor-review.sh`. Runs the GPT-6.x family; bundled default with no config is `gpt-6.1-sol` (codex 0.162.1 catalog + exec banner). Reasoning efforts `low…max` plus new `ultra` (not on Luna). ⚠️ The dispatcher passes no `-m`, so it inherits the operator's global model — open residual, see [`codex-cli.md`](vendor-knowledge/codex-cli.md) §9. `[VOLATILE]` |
+| **Codex** | Agentic-coding via CLI (`codex exec`); structured output | per model | The CLI binary is what we call into via `cross-vendor-review.sh`. Runs the GPT-6.x family; bundled default with no config is `gpt-6.1-sol` (codex 0.162.1 catalog + exec banner). Reasoning efforts `low…max` plus new `ultra` (not on Luna). The dispatcher pins the reviewer model by tier (`--tier`, default workhorse = `gpt-6.1-sol`; 2026-11-08) rather than inheriting the operator's global model — see [`codex-cli.md`](vendor-knowledge/codex-cli.md) §9. `[VOLATILE]` |
 | **GPT-6 Astra** (`gpt-6-astra`) | OpenAI frontier tier | $10 / $50 | Catalog label "Frontier intelligence". `[VOLATILE]` |
 | **GPT-6.1 Sol** (`gpt-6.1-sol`) | OpenAI workhorse | $2 / $10 | Catalog label "Latest workhorse"; Codex default. `[VOLATILE]` |
 | **GPT-6.1 Terra** (`gpt-6.1-terra`) | Cheaper workhorse-class model | $1 / $5 | Listed (visibility `list`, priority 3) in the **live** Codex model catalog the 0.162.1 CLI reads from `~/.codex/models_cache.json` (server-refreshed 2026-11-08 by a 0.164.0 client) — absent only from the *bundled* offline catalog of an unconfigured `CODEX_HOME`. Catalog gives it no role label ("GPT-6.1 Terra Codex model"). `[VOLATILE]` |
@@ -85,7 +85,7 @@ bundled catalog at codex 0.162.1.
 
 | Model | Best for | Cost tier | Notes |
 |---|---|---|---|
-| **Antigravity (`agy`)** | Agentic-coding via CLI; cross-vendor review peer | varies | Google's coding CLI. Headless via `agy --print`. ⚠️ Review dispatch currently **refused by the dispatcher's probe-version gate** (probe verified on 1.1.20, installed 1.5.3) and the denial regex needs widening first ([`antigravity-cli.md`](vendor-knowledge/antigravity-cli.md) §9). `[VOLATILE]` |
+| **Antigravity (`agy`)** | Agentic-coding via CLI; cross-vendor review peer | varies | Google's coding CLI. Headless via `agy --print`. Review dispatch re-enabled 2026-11-08 after the write-refusal probe passed on 1.5.3 and denial detection moved to the JSON `denied_actions` field; dispatch uses `gemini-3.8-flash-high` (workhorse) or `-low` (light), with no frontier mapping ([`antigravity-cli.md`](vendor-knowledge/antigravity-cli.md) §9). `[VOLATILE]` |
 | **Gemini 4 Argon** (`gemini-4-argon`) | Google frontier tier | $2 / $10 → **$4 / $20 from 2026-12-01** | API flagship; not on the Free tier. Not listed by `agy models` on the reference account. `[VOLATILE]` |
 | **Gemini 3.8 Flash** (`gemini-3.8-flash-{high,medium,low}` in agy) | Workhorse→light band; effort baked into the agy model ID | $0.75 / $3.75 → **$1.50 / $7.50 from 2027-01-01** | `agy models` 1.5.3 (2026-11-08) — replaces 3.7 / 3.6 / 3.5 Flash. `[VOLATILE]` |
 | **Gemini 3.1 Pro** | Prior frontier | $2 / $12 (≤200K prompt) | API-priced; no longer listed by `agy models` on the reference account. `[VOLATILE]` |

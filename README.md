@@ -18,11 +18,12 @@ own that process, not rent it from one vendor. If an agent saying
 
 **Recent — 2026-11-08 vendor refresh.** All three vendor knowledge files
 re-walked against Claude Code 2.1.319, Codex 0.162.1 and Antigravity 1.5.3.
-Two known gaps in the cross-vendor dispatcher are open and being fixed:
-Antigravity's newer headless denial notice slips past the fail-closed check
-(so Antigravity review stays **disabled** until it's fixed and re-probed),
-and Codex reviews inherit your personal Codex model instead of a pinned
-workhorse. Details in [`refresh-log.md`](markdowns/agents/refresh-log.md).
+The walk exposed gaps in the cross-vendor dispatcher, now fixed and
+behaviorally tested: reviews pin their model by tier (`--tier`, default
+workhorse) instead of inheriting your personal one, Claude reviews get
+read-only tools only, and Antigravity reviews fail closed on any denied
+tool action via its JSON output. Details in
+[`refresh-log.md`](markdowns/agents/refresh-log.md).
 
 ## What this template gives you
 

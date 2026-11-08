@@ -907,22 +907,24 @@ level (§3, §9).
   `-c model_reasoning_effort="medium"` explicitly. The dispatcher does
   (fixed 2026-08-25). `[MEDIUM]` (empirical, binary 0.144.5;
   re-confirmed 0.162.1)
-- **⚠️ Global MODEL also leaks into scripted calls — dispatcher NOT
-  fixed.** `codex exec` with no `-m` inherits the operator's global
-  `model`. On the reference machine that is **`gpt-6-astra`**, the
-  frontier tier, at 250 input credits per 1M tokens versus 50 for
-  `gpt-6.1-sol` (§6). The codex branch of
-  [`cross-vendor-review.sh`](../../../scripts/cross-vendor-review.sh)
-  passes **no `-m`**, so a Tier 1/2 review runs on whatever model the
-  operator happens to use. The claude branch, by contrast, pins
-  `--model sonnet`. **Approved fix, DEFERRED to a separate Tier 1 PR
-  (supervisor ruling R4, 2026-11-08):** pin the workhorse tier
-  (`-m gpt-6.1-sol` today), per
-  [`model-capabilities.md`](../model-capabilities.md) "Code review on
-  Tier 1/Tier 2 → workhorse". Tracked in the
-  [`refresh-log.md`](../refresh-log.md) residuals. **Not fixed as of
-  this walk.** `[MEDIUM]` (dispatcher read + exec banner, binary
-  0.162.1)
+- **⚠️ Global MODEL and NOTIFY also leak into scripted calls —
+  dispatcher FIXED 2026-11-08.** `codex exec` with no `-m` inherits the
+  operator's global `model`: on the reference machine **`gpt-6-astra`**,
+  the frontier tier, at 250 input credits per 1M tokens versus 50 for
+  `gpt-6.1-sol` (§6). It also runs the operator's turn-ended `notify`
+  hook — on the reference machine a Computer Use client that raised a
+  macOS Automation prompt mid-review. The dispatcher now passes
+  `-m "$REVIEW_MODEL"` from `--tier` (default `workhorse` =
+  `gpt-6.1-sol`, per [`model-capabilities.md`](../model-capabilities.md)
+  "Code review on Tier 1/Tier 2 → workhorse"; supervisor ruling
+  2026-11-08: Sol, with the authoring model free to escalate) and
+  `-c 'notify=[]'`. **Probed 2026-11-08 (0.162.1, real turns):** the
+  exec banner shows `model: gpt-6.1-sol`; `-c notify=["touch",<sentinel>]`
+  created the sentinel, so a `-c` value **replaces** the config hook, and
+  `-c notify=[]` runs none. `notify` is typed as a sequence
+  (`--strict-config` rejects `notify=1`). End-to-end dispatcher run
+  2026-11-08 returned a formatted review with `Reviewer: codex /
+  gpt-6.1-sol (tier: workhorse)`. `[MEDIUM]` (execution, binary 0.162.1)
 - **Dangerous bypass flags — ⚠️ supervised-use-only.**
   - `--dangerously-bypass-approvals-and-sandbox` (hidden alias
     **`--yolo`**, above) skips ALL confirmation prompts and runs
@@ -967,17 +969,21 @@ level (§3, §9).
 
   ```
   codex exec \
+    -m "$REVIEW_MODEL" \
     --sandbox read-only \
     -c 'model_reasoning_effort="medium"' \
+    -c 'notify=[]' \
     --output-last-message <path> \
     "<prompt>" </dev/null
   ```
 
   **Every flag is verified at binary 0.162.1.** The exact set was run
-  in a scratch git repo with no auth, and the banner showed `approval:
-  never`, `sandbox: read-only`, `reasoning effort: medium` before the
-  expected 401. **No `-m` is passed**; see the model-leak bullet above
-  (fix deferred, R4). `--ask-for-approval never` was used before codex
+  in a scratch git repo with no auth, and the banner showed `model:
+  gpt-6.1-sol`, `sandbox: read-only`, `reasoning effort: medium` before
+  the expected 401; a real end-to-end run then completed (model-leak
+  bullet above). `$REVIEW_MODEL` is tier-resolved: `workhorse` =
+  `gpt-6.1-sol`, `frontier` = `gpt-6-astra`, `light` = `gpt-6-luna`.
+  `--ask-for-approval never` was used before codex
   0.128.0; the flag was removed upstream. The active vendor invocation
   in `scripts/cross-vendor-review.sh` is the source of truth.
 
