@@ -20,10 +20,22 @@ sees the same content without the user editing twice.
 | `AGENTS.md` | `CLAUDE.md` (auto-synced) | Claude Code |
 | `.agents/skills/<name>/` | `.claude/skills/<name>/` (auto-synced) | Claude Code |
 
-Codex CLI reads `AGENTS.md` natively — no mirror needed.
-Antigravity CLI reads `AGENTS.md` via the `.gemini/settings.json`
-override (`context.fileName: ["AGENTS.md"]`) — see the per-vendor
-consumption table below. The path is `.gemini/` because Antigravity
+Codex CLI reads `AGENTS.md` natively — no mirror needed (untrusted
+projects get no project-level `AGENTS.md` since Codex 0.150.0).
+Antigravity CLI reads `AGENTS.md` natively per its first-party rules
+docs (walks up from cwd to repo root); the `.gemini/settings.json`
+override (`context.fileName: ["AGENTS.md"]`) is retained but its effect
+is unverified and possibly inert — see the per-vendor consumption table
+below.
+
+**Claude Code ≥ 2.1.277 can also read `AGENTS.md` natively — but only
+as a fallback** when no `CLAUDE.md`, `.claude/CLAUDE.md` or
+`CLAUDE.local.md` exists in the cwd or above (default setting
+`claude-md-or-agents-md`). The mirror is therefore still load-bearing:
+this repo has a `CLAUDE.md`, a `CLAUDE.local.md` silently suppresses the
+fallback, and adopters on older versions get nothing without it.
+Supervisor ruling 2026-11-08: keep the sync. Details in
+[`claude-code.md`](../agents/vendor-knowledge/claude-code.md) §1. The path is `.gemini/` because Antigravity
 inherits its config root from there; the file is Antigravity's, not
 Gemini's. Gemini CLI is no longer an active vendor in this template.
 
@@ -59,9 +71,9 @@ mirror before the source.
 
 | Vendor | Reads | Via |
 |---|---|---|
-| Claude Code | `CLAUDE.md`, `.claude/skills/` | Native lookup (both auto-synced from sources) |
+| Claude Code | `CLAUDE.md`, `.claude/skills/` | Native lookup (both auto-synced from sources). Native `AGENTS.md` read exists (≥2.1.277) but only when no `CLAUDE.md` is present, so the mirror stays |
 | Codex CLI | `AGENTS.md`, `.agents/skills/` | Native lookup — no glue needed. Scans `.agents/skills` from cwd up to repo root |
-| Antigravity CLI | `AGENTS.md`, `.agents/skills/` | `AGENTS.md` via `.gemini/settings.json` `context.fileName: ["AGENTS.md"]` override; skills loaded directly from `<workspace-root>/.agents/skills/` (Antigravity defaults to `.agents/skills`) |
+| Antigravity CLI | `AGENTS.md`, `.agents/skills/` | `AGENTS.md` native per first-party rules docs (the `.gemini/settings.json` `context.fileName` override is retained, effect unverified); skills loaded directly from `<workspace-root>/.agents/skills/` (Antigravity defaults to `.agents/skills`) |
 
 ## Sync mechanics
 
@@ -119,18 +131,20 @@ convention is documented for forward use.
 |---|---|
 | `.agents/skills/` | Canonical skill source AND the open-standard surface Codex + Antigravity read directly. Not Claude-specific. |
 | `.claude/skills/` | Claude's adapter — auto-generated mirror of `.agents/skills/`, because Claude Code looks in `.claude/skills/` rather than `.agents/skills/`. |
-| `.claude/hooks/` | Hooks are Claude-Code-specific (31 events vs Codex's 10, different semantics). No portable abstraction. Native to Claude only. |
-| `.gemini/settings.json` | Antigravity's `context.fileName: ["AGENTS.md"]` override. The path is `.gemini/` because Antigravity's config root inherits from `~/.gemini/`; this is Antigravity's config file, not Gemini's. |
+| `.claude/hooks/` | Hooks are Claude-Code-specific (33 events vs Codex's 12, different semantics). No portable abstraction. Native to Claude only. |
+| `.gemini/settings.json` | Antigravity's `context.fileName: ["AGENTS.md"]` override (effect unverified now that `AGENTS.md` is native) plus the project hardening keys the dispatcher checks. The path is `.gemini/` because Antigravity's config root inherits from `~/.gemini/`; this is Antigravity's config file, not Gemini's. |
 | `.codex/` | **Does not exist** — Codex reads both `AGENTS.md` and `.agents/skills/` natively with no override needed. The absence is intentional, not a gap. (A per-skill `agents/openai.yaml` overlay, if ever needed, lives inside `.agents/skills/<name>/`, not here.) |
-| `.antigravity/` | **Does not exist** — Antigravity reads `AGENTS.md` via `.gemini/settings.json` and skills from `.agents/skills/` directly. No project-level skills dir of its own is needed. |
+| `.antigravity/` | **Does not exist** — Antigravity reads `AGENTS.md` natively and skills from `.agents/skills/` directly. No project-level skills dir of its own is needed. |
 
 ## Asymmetry that's NOT going away
 
-Hooks. Claude Code has 31 hook events (`PreToolUse`, `PostToolUse`,
-`SessionStart`, etc. — count verified 2026-08-25, `DirectoryAdded`
-added in v2.1.219). Codex has 10, with different names and
-semantics. Antigravity has its own set (verify against
-`antigravity-cli.md`). There is no portable abstraction that covers
+Hooks. Claude Code has 33 hook events (`PreToolUse`, `PostToolUse`,
+`SessionStart`, etc. — count verified 2026-11-08 at 2.1.319;
+`PreModelSwitch` / `PostModelSwitch` added in v2.1.251). Codex has 12
+at 0.162.1 (14 documented for 0.164+), with different names and
+semantics. Antigravity documents 6 (`SessionStart`, `PreToolUse`,
+`PostToolUse`, `PreInvocation`, `PostInvocation`, `Stop`; command
+handlers only). There is no portable abstraction that covers
 all three meaningfully, so hooks live in `.claude/hooks/` only and
 the asymmetry is documented rather than hidden behind a
 pretend-portable wrapper.
@@ -143,11 +157,14 @@ vendor's hook surface. That's a known cost. Don't pretend otherwise.
 
 The cross-vendor review dispatcher invokes peer vendors via **shell
 invocation** (`codex exec`, `agy --print`) rather than connecting to
-them as **MCP servers**. Codex ships `codex mcp-server` (verified
-2026-06-10 against Codex 0.139.0); Antigravity v1.1.4 still has no
-first-party server mode. The architectural trigger (any peer vendor
-ships a server mode) fired via Codex, and we explicitly chose to stay
-on shell invocation.
+them as **MCP servers**. The architectural trigger (any peer vendor
+ships a server mode) fired via Codex's `codex mcp-server` (verified
+2026-06-10 against Codex 0.139.0), and we explicitly chose to stay on
+shell invocation. That command was **removed in Codex 0.154.0** (Codex
+now points to its app server), and Antigravity ships no MCP server
+mode — so as of 2026-11-08 neither peer offers one. Antigravity 1.5.0
+did add `agy acp`, an Agent Client Protocol stdio server (a different
+protocol; not evaluated here).
 
 **Why shell stays the default:**
 
@@ -156,7 +173,7 @@ on shell invocation.
   server to be running, configured, and reachable. For a template,
   the lower-friction path wins.
 - **Sandbox posture.** The shell pattern uses Codex's native read-only
-  sandbox. Antigravity dispatch requires `agy ≥ 1.1.4`, persisted strict
+  sandbox. Antigravity dispatch requires `agy ≥ 1.1.18`, persisted strict
   permissions, terminal sandboxing, project hardening, and a recorded
   headless write-refusal probe. Its review target is embedded in the prompt so
   strict headless mode requires no filesystem read grant. These checks live in

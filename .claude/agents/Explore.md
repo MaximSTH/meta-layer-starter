@@ -29,4 +29,7 @@ Claude Code's built-in Explore agent. Its purpose is the `model: sonnet`
 expensive model. Verification record (probes, evidence, control arm) is
 canonical in markdowns/agents/vendor-knowledge/claude-code.md §3; this
 note quotes it. If you delete this file, the built-in returns and
-inherits the session model. -->
+inherits the session model. The pin is a DEFAULT, not enforcement: a
+per-invocation `model` on the Agent tool call overrides it, and only the
+operator env var CLAUDE_CODE_SUBAGENT_MODEL_FORCE hard-enforces (claude-code.md
+§3, verified 2026-11-08). -->

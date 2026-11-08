@@ -2,7 +2,7 @@
 name: vendor-knowledge-codex-cli
 description: Volatility-tagged knowledge of Codex CLI — canonical file (AGENTS.md native), skills, subagents, hooks, auth, rate limits, cost, MCP, headless. Drives cross-vendor scripts and /refresh-vendor.
 status: reference
-last-verified: 2026-08-25
+last-verified: 2026-11-08
 ---
 
 # Codex CLI — vendor knowledge
@@ -13,17 +13,23 @@ Single file. One vendor. Every claim carries a `[STABLE]` / `[MEDIUM]` /
 **Install:** `npm install -g @openai/codex` —
 see [`learn.chatgpt.com/docs/codex/cli`](https://learn.chatgpt.com/docs/codex/cli)
 for platform-specific instructions and authentication setup. (Package
-name verified via `npm view @openai/codex` → **0.144.5 latest, 2026-07-18**
-(local binary introspected at 0.139.0; 0.140–0.144.5 drift walked via
-GitHub release notes); the binary it installs is `codex`, not
-`codex-cli`.)
+name verified via `npm view @openai/codex` → **0.167.0 latest,
+2026-11-08**; local binary introspected at **0.162.1** (Homebrew);
+0.145.0–0.162.1 walked via binary + GitHub release notes, 0.163.0–0.167.0
+via release notes only. The binary it installs is `codex`, not
+`codex-cli`.) The docs page now leads with a standalone installer
+(`curl -fsSL https://chatgpt.com/codex/install.sh | sh`) and still lists
+npm and Homebrew. `[STABLE]`
 
 **Docs host migration (2026-07-18):** the docs moved from
 `developers.openai.com/codex/*` to `learn.chatgpt.com/docs/*` with a
 **non-1:1 path remap** (e.g. `/codex/subagents` →
 `/docs/agent-configuration/subagents`, `/codex/skills` →
 `/docs/build-skills`). Old URLs 308-redirect but are no longer
-canonical; every citation below points at the new home.
+canonical; every citation below points at the new home. Re-checked
+2026-11-08: every `learn.chatgpt.com` citation returns 200 with no
+redirect (host has not moved again); `help.openai.com` articles return
+403 to scripted fetches.
 
 ## TOC
 
@@ -34,7 +40,7 @@ canonical; every citation below points at the new home.
 5. Auth
 6. Rate limits (VOLATILE)
 7. Cost
-8. MCP (client + server)
+8. MCP (client only since 0.154.0)
 9. Headless invocation
 10. Gaps / Codex-CLI-down notes
 
@@ -46,15 +52,18 @@ Each claim's tag describes how often the underlying content tends to change:
 - **`[MEDIUM]`** — minor version bumps or quarterly cadence.
 - **`[VOLATILE]`** — monthly or faster.
 
-### Verification boundary (2026-08-25 walk)
+### Verification boundary (2026-11-08 walk)
 
-Binary channel is **0.144.5 installed** (the 2026-07-18 walk ran against
-0.139.0, so several previously docs-only claims are now executable).
-Where a claim was tested, the probe and its **control** are cited
-inline. Claims the binary could not discriminate — notably per-agent
-`model` pinning, because `AgentRoleToml` ignores unknown fields — are
-marked **`low-confidence`** per
-[`refresh-vendor.md`](../../protocols/refresh-vendor.md).
+Binary channel is **0.162.1 installed**; npm latest is **0.167.0**.
+Claims about 0.163.0–0.167.0 are release-notes-only and tagged
+**`low-confidence`** per
+[`refresh-vendor.md`](../../protocols/refresh-vendor.md). Where a claim
+was tested, the probe and its **control** are cited inline. Probes ran
+in a scratch `CODEX_HOME` with **no auth**: an accepted config proceeds
+to a 401 before any model call, a rejected one fails at config load —
+so schema claims were verified without spending model calls. Behavior
+that needs a live, authenticated run — notably whether a subagent
+`model` pin is **honored at spawn** — remains `low-confidence`.
 
 A weekly calendar reminder triggers the cadence — when it fires, open Claude Code in the repo and type `/refresh-vendor <vendor>`. That supervised session walks every claim regardless of tier (Claude reads `last-verified` itself during step 2 of the protocol). The tiers inform per-claim re-tagging and form a ceiling on inter-walk gap: VOLATILE 60 days, MEDIUM 90 days, STABLE yearly.
 
@@ -89,11 +98,23 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   `[STABLE]`
 - **Profile isolation:** `CODEX_HOME` env var redirects the global lookup
   to a different directory; useful for per-project sandboxes. `[STABLE]`
+- **⚠️ Project-level `AGENTS.md` is trust-gated (0.150.0).** "Untrusted
+  projects no longer supply project-level `AGENTS.md` instructions"
+  (release rust-v0.150.0 #39837); 0.147.0 already required explicit
+  trust for unfamiliar local projects (#36960). A project that is not
+  in the user's trusted list therefore runs **without** its project
+  `AGENTS.md`. Non-interactive runs surface the same gate: `codex exec`
+  in a non-git, untrusted directory fails with "Not inside a trusted
+  directory and --skip-git-repo-check was not specified" (execution,
+  binary 0.162.1). `[MEDIUM]`
+  ([github.com/openai/codex/releases](https://github.com/openai/codex/releases))
 - **Repo posture:** `AGENTS.md` at the repo root is the canonical
   instructions file. Codex reads it natively — no `.codex/settings`
-  glue required. The pre-commit hook auto-mirrors AGENTS.md to
-  CLAUDE.md so Claude Code's native lookup sees the same content.
-  `[STABLE]`
+  glue required — **provided the project is trusted** (above); an
+  adopter's fresh clone is untrusted until they accept it. The
+  pre-commit hook auto-mirrors AGENTS.md to CLAUDE.md so Claude Code's
+  native lookup sees the same content. `[MEDIUM]` (was `[STABLE]`;
+  retagged for the trust precondition)
 
 ---
 
@@ -112,7 +133,9 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   from your current working directory up to the repository root." Four
   scope levels: `$REPO_ROOT/.agents/skills`, `$CWD/../.agents/skills`
   (each parent up the chain), `$HOME/.agents/skills` (personal), and
-  `/etc/codex/skills` (system admin). `[MEDIUM]`
+  `/etc/codex/skills` (system admin), plus bundled system skills
+  (`skill-creator`, `skill-installer`). Same-name skills are not
+  merged. `[MEDIUM]`
   ([learn.chatgpt.com/docs/build-skills](https://learn.chatgpt.com/docs/build-skills))
 - **Invocation — both modes:** explicit (`$skill` mention in the prompt)
   AND implicit (auto-routed by `description` match). Unlike Codex
@@ -124,7 +147,10 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   optional `agents/openai.yaml` for Codex-specific metadata. The
   `agents/openai.yaml` overlay is Codex's analogue to Claude's
   `.claude.frontmatter.yml` — vendor-specific fields stay out of the
-  portable `SKILL.md`. `[MEDIUM]`
+  portable `SKILL.md`. `agents/openai.yaml` carries UI metadata,
+  invocation policy and tool dependencies; `allow_implicit_invocation`
+  defaults to `true` (when `false`, explicit `$skill` still works).
+  `[MEDIUM]`
   ([learn.chatgpt.com/docs/build-skills](https://learn.chatgpt.com/docs/build-skills))
 - **Repo posture:** this template's root [`.agents/skills/`](../../../.agents/skills/)
   is picked up by Codex's repo-root scan **with zero extra wiring** —
@@ -135,25 +161,40 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
   `.codex/`-side mirror is needed (contrast Claude, which needs the
   `.claude/skills/` mirror). The `markdowns/protocols/` substance layer
   remains the deeper reference these skills point into. `[STABLE]`
-- **Slash commands:** Codex ships built-in slash commands (`/agent`,
-  `/permissions`, `/login`, `/logout`, `/status`, etc.) for runtime
-  control. These are vendor-built-ins, not user-authored skills. `[MEDIUM]`
-  ([learn.chatgpt.com/docs/codex/cli](https://learn.chatgpt.com/docs/codex/cli))
+- **Slash commands:** Codex ships built-in slash commands for runtime
+  control. The CLI page's sample session shows `/init`, `/status`,
+  `/permissions`, `/model`, `/review`; `/agent`, `/login`, `/logout`
+  were not re-confirmed this walk (the full list lives on a separate
+  slash-commands page, not fetched). Release notes add `/export`
+  (0.148.0), `/cd`/`/pwd`/`/cwd` (0.149.0), `/worktree` (0.154.0),
+  `/daemon` (0.156.0), `/mcp login` (0.161.0). These are
+  vendor-built-ins, not user-authored skills. `[MEDIUM]`
+  ([learn.chatgpt.com/docs/codex/cli](https://learn.chatgpt.com/docs/codex/cli),
+  [github.com/openai/codex/releases](https://github.com/openai/codex/releases))
 - **Plugin ecosystem: mature, remote-default as of 0.143.0.** `codex
   plugin` manages marketplaces; the `plugins` and `plugin_sharing`
-  feature flags are stable-on (`codex features list`, 0.139.0). **Remote
+  feature flags are stable-on (`codex features list`, 0.139.0; still so at 0.162.1). **Remote
   plugins are enabled by default as of 0.143.0** with npm marketplace
   sources and visible remote/local versions; `/plugins` organizes them
   into OpenAI Curated / Workspace / Shared-with-me sections (0.142.0),
   and eligible turns can recommend + install relevant plugins. Skills
   can install their MCP dependencies (`skill_mcp_dependency_install`
   stable). The old `plugin_hooks` feature flag was **removed** — plugin
-  lifecycle hooks fold into core `hooks` (§4). Surface moves monthly —
-  re-verify before relying. `[VOLATILE]`
+  lifecycle hooks fold into core `hooks` (§4). **Since last walk:**
+  portable Agent Plugins manifests and workspace publishing
+  (0.146.0/0.147.0); `codex plugin add|list|marketplace|remove` manages
+  local + remote marketplaces from the CLI (0.153.0; `codex plugin
+  --help` 0.162.1). `features list` 0.162.1: `plugins`,
+  `plugin_sharing`, `remote_plugin` stable-on; `recommended_plugins`
+  stable-off. Surface moves monthly — re-verify before relying.
+  `[VOLATILE]`
   ([github.com/openai/codex/releases](https://github.com/openai/codex/releases))
 - **Cross-vendor import:** `/import` (0.140.0) selectively imports setup,
-  project config, and recent chats **from Claude Code**; `@` opens a
-  unified mentions menu for files, plugins, and skills. `[MEDIUM]`
+  project config, and recent chats **from Claude Code**; expanded in
+  0.145.0/0.147.0 to **Cursor** as well (settings, MCP servers,
+  plugins, sessions, commands, project-scoped memories, Cursor-managed
+  skills). `@` opens a unified mentions menu for files, plugins, and
+  skills. `[MEDIUM]`
   ([github.com/openai/codex/releases](https://github.com/openai/codex/releases))
 
 ---
@@ -163,178 +204,259 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
 - **File location:** TOML files at `.codex/agents/<name>.toml` (project) or
   `~/.codex/agents/<name>.toml` (personal). Required fields: `name`,
   `description`, `developer_instructions`. `[STABLE]`
-- **Per-subagent model pinning — docs YES, binary INCONCLUSIVE.**
-  `[MEDIUM]` `low-confidence` The subagents docs list `model` and
-  `model_reasoning_effort` as optional agent-file fields (plus
-  `sandbox_mode`, `mcp_servers`, `skills.config`), and state "you can
-  also include other supported `config.toml` keys in a custom agent
-  file." **The binary could not confirm it.** A `--strict-config` probe
-  at 0.144.5 accepted an inline `AgentRoleToml` carrying `model`, but
-  the **control carrying a nonsense field was accepted too** — the
-  struct ignores unknown fields, so acceptance proves nothing about
-  whether the key is honored. A behavioral delegate-and-observe attempt
-  (2026-08-25, 0.144.5) failed one step EARLIER: `codex exec --json`
-  with an explicit "delegate to <agent>" prompt produced
-  `collab_tool_call` events with **empty `receiver_thread_ids`** — no
-  subagent thread ever spawned; the top-level model answered itself
-  (its plain-text reply mimicked successful delegation, which a
-  non-JSON run would have miscounted as success). So headless
-  delegation-on-request is itself unverified at defaults, and the
-  `model` field is untestable until a spawn is achieved (interactive
-  `/agent`, or whatever configuration headless spawning needs). Treat
-  as docs-sourced. **Consequence for the model guardrail:** no Codex
-  enforcement artifact ships until a spawn is demonstrable — an
-  unverifiable pin is exactly the false confidence the harness bans.
-  The exposure this leaves is small: Codex delegation is
-  explicit-request-only AND, per this probe, does not spawn in headless
-  defaults even when asked.
+- **Agent files are strictly deserialized (binary 0.162.1) — the
+  `model` key is SCHEMA-CONFIRMED; honoring at spawn is NOT.** This
+  reverses the 2026-08-25 "binary INCONCLUSIVE" finding. A standalone
+  agent file under `$CODEX_HOME/agents/` is now parsed with unknown
+  fields rejected and known fields typed (`codex exec --strict-config`
+  probes, scratch `CODEX_HOME`, 2026-11-08):
+  `zzz_nonsense = 1` → `unknown field`; `model = 1` → `invalid type:
+  integer, expected a string`; `model_reasoning_effort = 1` → `expected
+  a string`; `sandbox_mode = "bogus"` → `expected one of read-only,
+  workspace-write, danger-full-access`. So `model` and
+  `model_reasoning_effort` are recognised, typed agent-file fields
+  `[MEDIUM]` (verified by execution). The old caveat ("`AgentRoleToml`
+  ignores unknown fields") now holds **only for inline
+  `[agents.<name>]` tables** in `config.toml`, where `model = 1` and a
+  nonsense field are still both accepted; the inline table's own fields
+  (`description`, `config_file`, `nickname_candidates`) are typed.
+  Release rust-v0.145.0–0.149.0 context: #39299 "Restrict agent roles
+  to bounded configuration overrides".
+  **Whether a pinned `model` is honored when a subagent actually spawns
+  remains `low-confidence`:** no spawn was attempted this walk (it needs
+  an authenticated run). The 2026-08-25 behavioral attempt (0.144.5)
+  failed one step earlier: `codex exec --json` with an explicit
+  "delegate to <agent>" prompt produced `collab_tool_call` events with
+  **empty `receiver_thread_ids`** — no subagent thread spawned; the
+  plain-text reply mimicked successful delegation. Headless spawning is
+  unverified at 0.162.1 too. **Consequence for the model guardrail:** no
+  Codex enforcement artifact ships until a spawn is demonstrable.
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents),
-  `codex exec --strict-config` + `--json` delegation probes 2026-08-25)
-- **⚠️ `agents.default_subagent_model` does NOT exist at 0.144.5 —
-  docs contradicted by binary.** The docs page describes
+  agent-file probes 2026-11-08, `--json` delegation probe 2026-08-25)
+- **⚠️ A malformed agent file is dropped with only a warning.** Even
+  under `--strict-config`, a bad agent file yields `warning: Ignoring
+  malformed agent role definition: …` and the run continues **without
+  that agent** — a typo in a pin silently removes the agent instead of
+  failing. Any enforcement artifact must check for this warning.
+  `[MEDIUM]` (execution, binary 0.162.1)
+- **Agent-file field semantics (docs).** Model fields: `model`,
+  `model_reasoning_effort`, `model_reasoning_summary`,
+  `model_verbosity`. Capability reduction: set feature keys to false
+  (`features.shell_tool`, `features.apps`, `features.plugins`); disable
+  skills via `skills.config`. **Correction:** the docs now state that
+  `sandbox_mode`, `approval_policy`, `model_provider` and `mcp_servers`
+  in an agent file do **NOT** override the parent config — the prior
+  walk listed `sandbox_mode` / `mcp_servers` as optional override
+  fields. (The binary still type-checks `sandbox_mode`, so it parses;
+  parsing ≠ applying.) `[MEDIUM]` docs-only
+  ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
+- **⚠️ REVERSAL — `agents.default_subagent_model` and
+  `agents.default_subagent_reasoning_effort` ARE real keys at 0.162.1.**
+  At 0.144.5 the binary parsed them as agent *names*
+  (`expected struct AgentRoleToml`). At 0.162.1, under
+  `--strict-config`, `-c agents.default_subagent_model="gpt-5.4-mini"`
+  and `-c agents.default_subagent_reasoning_effort="low"` are accepted;
+  type controls `=1` and `={x=1}` are rejected with `expected a
+  string`, while the nonsense-key control `agents.zzz_nonsense=1` is
+  still rejected as `expected struct AgentRoleToml` — so these are
+  typed scalar keys, not agent names. Likely landed in 0.145.0
+  ("Stabilized the opt-in multi-agent V2 experience with configurable
+  sub-agent models, reasoning levels, concurrency…"; #33550 "Unify
+  multi-agent settings under `agents`", #33631 "Honor configured model
+  defaults for spawned agents"). Docs: "Explicit spawn values override
   `agents.default_subagent_model` and
-  `agents.default_subagent_reasoning_effort` as `[agents]` config keys.
-  The binary rejects both: `-c agents.default_subagent_model="…"` fails
-  with `invalid type: string, expected struct AgentRoleToml`, i.e. the
-  key is parsed as an *agent name* whose value must be a role struct.
-  Per the channel-reliability ordering, **the binary wins**. There is
-  therefore **no global subagent-model default** on Codex at this
-  version; pinning must be per-agent. `[MEDIUM]`
-  (`codex exec --strict-config -c agents.default_subagent_model=…`
-  probe 2026-08-25)
+  `agents.default_subagent_reasoning_effort`." **Codex therefore now
+  has a global subagent-model default.** Key existence `[MEDIUM]`
+  verified by execution; **honored at spawn: `low-confidence`** — not
+  tested, and it may apply only under multi-agent V2
+  (`multi_agent_v2` is `stable false`, i.e. opt-in, in `codex features
+  list` 0.162.1). 0.163.0 adds an opt-in "subagent model context
+  defaults" feature (#52659) — `low-confidence`.
+  ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents),
+  `codex exec --strict-config` probes 2026-11-08)
+- **Subagents on by default:** `agents.enabled` (boolean; binary types
+  it — `"x"` → `expected a boolean`) defaults to `true` per docs:
+  "Current Codex releases enable subagent workflows by default."
+  `multi_agent` is `stable true` in `features list` 0.162.1. `[MEDIUM]`
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
-- **Parallel spawn:** YES. `agents.max_threads` (in `[agents]` section of
-  `config.toml`) caps concurrent subagent threads — **default 6** when
-  unset. **Key existence binary-confirmed at 0.144.5:** under
-  `--strict-config`, `-c agents.max_threads=6` is accepted while an
-  arbitrary `[agents]` key is rejected as `expected struct
-  AgentRoleToml` — so `max_threads` is a recognised scalar key, not an
-  agent name. (The *default value* 6 remains docs-sourced.) `[STABLE]`
+- **Parallel spawn:** YES. The docs' key is now
+  `agents.max_concurrent_threads_per_session`; `agents.max_threads` is
+  documented as a **legacy alias** ("Existing configurations can keep
+  using `agents.max_threads` as a legacy alias"). Both are typed `usize`
+  in the binary (`"six"`/`"x"` → `expected usize`). **Default value is
+  no longer stated anywhere:** docs say "When you leave [it] unset,
+  Codex chooses the default." The previously recorded default 6 is
+  unsourced as of this walk. `[MEDIUM]` (was `[STABLE]`; key renamed)
+  ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents),
+  `--strict-config` probes 2026-11-08)
+- **Nesting cap:** `agents.max_depth` still exists (typed `i32`;
+  `"one"` → `expected i32`, binary 0.162.1) and limits how deep
+  children may spawn. The previously recorded **default 1 is no longer
+  stated on the docs page** — unsourced as of this walk. Raising it
+  multiplies token/latency cost. `[MEDIUM]` (was `[STABLE]`)
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
-- **Nesting cap:** `agents.max_depth` defaults to **1** — the root
-  thread spawns direct children but children can't spawn deeper
-  descendants; raise the value to allow deeper nesting (docs caution
-  against it: token/latency/resource cost). **Key existence
-  binary-confirmed at 0.144.5** by the same `--strict-config`
-  discriminator as `max_threads` above; the *default value* 1 remains
-  docs-sourced. `[STABLE]`
-  ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
-  **Cross-vendor head-to-head — REBUILT 2026-08-25** (both halves
-  re-verified; the PR #9 pending marker is retired). Fan-out shape:
+  **Cross-vendor head-to-head — UPDATED 2026-11-08.** The Codex column
+  is re-verified at binary 0.162.1. The Claude model rows follow the
+  2026-11-08 `claude-code` walk (supervisor ruling); the Claude depth
+  and concurrency figures are carried from 2.1.220 and are not
+  re-verified here — [`claude-code.md`](claude-code.md) §3 is
+  canonical for that column.
 
-  | Axis | Codex CLI 0.144.5 | Claude Code 2.1.220 |
+  | Axis | Codex CLI 0.162.1 | Claude Code (see `claude-code.md` §3) |
   |---|---|---|
-  | Default nesting depth | **1** (`agents.max_depth`) | **3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`) |
+  | Default nesting depth | **unstated** (`agents.max_depth` exists; docs no longer give 1) | **3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`, 2.1.220) |
   | Depth configurable? | Yes | Yes |
-  | Concurrency cap | **6** (`agents.max_threads`) | **20** (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`) |
+  | Concurrency cap | **unstated** (`agents.max_concurrent_threads_per_session`; `max_threads` legacy alias) | **20** (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`, 2.1.220) |
   | Per-session total cap | none documented | **none** (200 cap removed v2.1.224) |
-  | Delegation default | **explicit-request-only** | **description-match auto-routing** |
-  | Per-agent model pinning | `model` in agent TOML (docs; binary inconclusive) | `model:` frontmatter, defaults `inherit` (docs-confirmed) |
-  | Global subagent-model default | **none** (binary rejects `agents.default_subagent_model`) | **none** (no such setting) |
+  | Delegation default | **explicit request** (proactive only at the Ultra intelligence level) | **description-match auto-routing** |
+  | Per-agent model pinning | `model` in agent TOML — schema-confirmed by execution; honored-at-spawn `low-confidence` | `model:` frontmatter, defaults `inherit`; overridable per invocation |
+  | Global subagent-model default | **`agents.default_subagent_model`** (binary-typed key; honored-at-spawn `low-confidence`) | **`CLAUDE_CODE_SUBAGENT_MODEL`** (ranks below frontmatter since 2.1.251) |
+  | Hard enforcement | none found | **`CLAUDE_CODE_SUBAGENT_MODEL_FORCE`** (2.1.257) |
 
-  **The load-bearing difference is no longer depth — it is delegation
-  posture.** Codex spawns subagents only on an explicit request, so an
-  unpinned expensive model has a bounded blast radius. Claude Code
-  auto-routes by description match *and* inherits the session model.
-  ⚠️ **Scope of this conclusion:** the evidence supports *greater
-  automatic fan-out exposure under documented defaults* — it does not
-  establish an absolute cost ranking, which additionally depends on
-  per-model prices, workload shape, real routing behavior, and local
-  configuration. No delegate-and-observe test was run on either
-  vendor.
-  Neither vendor offers a global subagent-model default. Per-agent
-  pinning is the **documented** mechanism on both, but note the
-  asymmetry in evidence: Claude Code's `model:` frontmatter is
-  docs-confirmed, while whether the Codex binary actually **honors**
-  `model` in an agent TOML remains unverified (see the
-  `low-confidence` bullet above). Do not treat "both require per-agent
-  pinning" as an established capability on the Codex side.
+  **The load-bearing difference is still delegation posture.** Codex
+  spawns subagents only on an explicit request at most intelligence
+  levels, so an unpinned expensive model has a bounded blast radius.
+  Claude Code auto-routes by description match *and* inherits the
+  session model unless pinned. ⚠️ **Scope of this conclusion:** the
+  evidence supports *greater automatic fan-out exposure under
+  documented defaults*. It does not establish an absolute cost ranking,
+  which also depends on per-model prices, workload shape, real routing
+  behavior, and local configuration. No delegate-and-observe test has
+  succeeded on Codex.
+  **Both vendors now offer a global subagent-model default**, which
+  retires the prior "neither vendor" statement. The evidence is
+  asymmetric: Claude Code also ships a hard-enforcement switch, while on
+  Codex both the global key and the per-agent `model` are only
+  **schema-confirmed**, and whether a spawn honors them is unverified.
+  Do not treat the Codex pin as an established capability.
   See [`claude-code.md`](claude-code.md) §3 / §10.
-- **Delegation modes (0.142.0+) — explicit-request-only by default.**
-  Multi-agent delegation is configurable per thread/turn as **disabled /
-  explicit-request-only / proactive**. The default posture is
-  explicit-request-only: the user runs `/agent`, names the agent, or a
-  project/skill instruction requests it. The **exception is ChatGPT
-  Ultra**, which can proactively delegate suitable work without an
-  explicit ask (0.144.0 warns when high multi-agent concurrency could
-  burn usage quickly). Description-match auto-routing (Claude Code's
-  default model-invocation) still is NOT a Codex subagent behavior —
+- **Delegation posture — explicit request by default; "Ultra" is an
+  intelligence level, not a plan.** The docs no longer use the
+  "disabled / explicit-request-only / proactive" labels; they say "At
+  most intelligence levels, ask for delegation explicitly" and "With
+  Ultra, ChatGPT can proactively delegate work when parallel agents
+  would materially improve speed or quality … Ultra is available only
+  to eligible accounts and supported models." **Correction:** the prior
+  walk's "ChatGPT Ultra" exception read as a subscription plan; Ultra
+  is the `ultra` reasoning/intelligence level (listed in
+  `supported_reasoning_levels` in `codex debug models`, binary 0.162.1;
+  see §9). `features list` 0.162.1 shows `multi_agent_mode` and
+  `collaboration_modes` as `removed`. Description-match auto-routing
+  (Claude Code's default) is still NOT a Codex subagent behavior —
   contrast skills (§2), which DO auto-route. `[MEDIUM]`
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
-- **Error propagation (0.142.0):** parent agents now receive terminal
+- **Error propagation (0.142.0+):** parent agents receive terminal
   subagent errors instead of seeing failed work as an empty successful
-  completion. `[MEDIUM]`
+  completion; 0.160.0 also delivers subagent configuration/preparation
+  failures to the parent. Nested subagent token usage counts toward
+  root goal budgets (0.151.0). `[MEDIUM]`
   ([github.com/openai/codex/releases](https://github.com/openai/codex/releases))
-- **Job timeout:** `agents.job_max_runtime_seconds` caps per-worker
-  runtime — **default 1800 s** when unset; relevant when using
-  subagents for CSV batch jobs. **Key existence binary-confirmed at
-  0.144.5** by the same `--strict-config` discriminator used for
-  `max_depth` / `max_threads` (accepted as a scalar rather than
-  rejected as `expected struct AgentRoleToml`); the *default value*
-  1800 remains docs-sourced. `[MEDIUM]`
+- **Job timeout:** `agents.job_max_runtime_seconds` (typed `u64`; `"x"`
+  → `expected u64`, binary 0.162.1) caps per-worker runtime. The
+  previously recorded **default 1800 s is not stated on the current
+  docs page** — unsourced as of this walk. `[MEDIUM]`
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
-- **Display + batch extras:** optional `nickname_candidates` field
-  gives spawned agents readable display names; experimental
-  `spawn_agents_on_csv` tool runs one worker per CSV row (workers
-  report via `report_agent_job_result`). Subagents inherit the parent
-  session's sandbox policy and runtime overrides. `[MEDIUM]`
+- **Display + batch extras:** `nickname_candidates` (inline-table field,
+  binary-typed as a sequence) gives spawned agents readable display
+  names. `spawn_agents_on_csv` / `report_agent_job_result` **no longer
+  appear on the subagents docs page** — not re-verified this walk; do
+  not rely on them without a fresh check. `[MEDIUM]` `low-confidence`
   ([learn.chatgpt.com/docs/agent-configuration/subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents))
-- **Cross-vendor commentary:** the explicit-only model applies to
+- **Subagent reasoning effort from the model catalog (`low-confidence`).**
+  The bundled catalog (`codex debug models`, binary 0.162.1) carries
+  `multi_agent_reasoning_effort: "xhigh"` on `gpt-6-astra` and
+  `gpt-6.1-sol`. The field's semantics are undocumented, but it
+  suggests subagents spawned under those models default to `xhigh`, a
+  cost-relevant default. Unverified at spawn. `[VOLATILE]`
+- **Cross-vendor commentary:** the explicit-request model applies to
   **subagents**, not skills. Skills (§2) DO auto-route by description
   match on Codex, so `/build-feature` and `/refresh-vendor` are
   auto-invocable from `.agents/skills/` here just as on Claude Code.
-  Codex subagents, by contrast, require an explicit `/agent <name>` or
-  prompt naming. Don't conflate the two surfaces. `[STABLE]`
+  Codex subagents, by contrast, need an explicit `/agent <name>` or a
+  prompt that names them; the one exception is proactive delegation at
+  the Ultra intelligence level. Don't conflate the two surfaces.
+  `[STABLE]`
 
 ---
 
 ## 4. Hooks
 
 - **Enabled by default — feature flag no longer required.** The
-  canonical feature key is now `hooks` (`codex features list` on
-  0.139.0 shows `hooks stable true`); `codex_hooks` survives as a
-  deprecated alias (it was still the listed name on 0.128.0). Disable
-  explicitly with `[features] hooks = false` in `config.toml`. `[MEDIUM]`
-  (binary `codex features list` 0.139.0,
+  canonical feature key is `hooks` (`codex features list` 0.162.1 shows
+  `hooks stable true`). `codex_hooks` survives as a deprecated alias:
+  it is still accepted under `--strict-config` at 0.162.1, and the docs
+  say "Use `hooks`, not `codex_hooks`, which still works only as a
+  deprecated alias." Disable explicitly with `[features] hooks = false`
+  in `config.toml`. `[MEDIUM]`
+  (binary `codex features list` + `--strict-config` 0.162.1,
   [learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks))
-- **Event names (full list as of last-verified, 10 events):**
-  `SessionStart`, `SubagentStart`, `PreToolUse`, `PermissionRequest`,
-  `PostToolUse`, `PreCompact`, `PostCompact`, `UserPromptSubmit`,
-  `SubagentStop`, `Stop`. `PreToolUse` / `PermissionRequest` carry
-  permission-decision schemas that can rewrite tool inputs. `[MEDIUM]`
-  ([learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks))
+- **Event names — 12 recognised by binary 0.162.1 (was 10); 14 per
+  docs.** The 12 recognised events are `SessionStart`, **`SessionEnd`**
+  (release rust-v0.145.0 #33895), `SubagentStart`, `PreToolUse`,
+  `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`,
+  `UserPromptSubmit`, `SubagentStop`, `Stop`, and **`Interrupt`**
+  (rust-v0.150.0 #40511, fires when an active top-level turn is
+  interrupted). Probe method: a `hooks.json` carrying a bogus handler
+  type is rejected only under an event name the binary recognises,
+  while under `ZzzBogusEvent` it is silently ignored (scratch
+  `CODEX_HOME`, 2026-11-08). Unknown event names are therefore
+  **silently ignored, not errors** — a misspelled event never fires.
+  The docs also list **`PreModelRequest`** and **`PostModelRequest`**,
+  which are NOT recognised by 0.162.1. They arrive with rust-v0.164.0
+  #55144 ("observation-only model request lifecycle hooks") and are
+  `low-confidence` until a binary ≥0.164 is probed. `PreToolUse` /
+  `PermissionRequest` carry permission-decision schemas that can
+  rewrite tool inputs. `[MEDIUM]`
+  ([learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks),
+  hooks.json probes 2026-11-08)
 - **Configuration locations** (four canonical):
   `~/.codex/hooks.json`, `~/.codex/config.toml` (`[hooks]` table),
-  `<repo>/.codex/hooks.json`, `<repo>/.codex/config.toml`. `[STABLE]`
+  `<repo>/.codex/hooks.json`, `<repo>/.codex/config.toml`. Also enabled
+  plugins (`hooks/hooks.json` or a `hooks` entry in
+  `.codex-plugin/plugin.json`) and managed `requirements.toml`; all
+  sources merge. **Project hooks load only when the project's `.codex/`
+  layer is trusted.** `[STABLE]`
   ([learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks))
-- **Handler types:** only `type: "command"` (shell) executes; `prompt`
-  and `agent` handler types are parsed but inactive. Configurations
-  use matcher groups: an event + a matcher predicate + one or more
-  handlers. Handlers receive event payload on stdin and run with the
-  session working directory as context. `[MEDIUM]`
+- **Handler types — `command` AND `mcp_tool` execute (correction).**
+  The binary's handler enum is `command`, `mcp_tool`, `prompt`, `agent`
+  (from the parse error `unknown variant … expected one of …`, binary
+  0.162.1). `mcp_tool` "calls a tool on an already-connected MCP
+  server" (rust-v0.148.0 #38705, enabled in sessions rust-v0.149.0
+  #39296). `command` hooks can run asynchronously with `async: true`
+  (rust-v0.148.0 #37533). Per the docs, `prompt` and `agent` are still
+  "parsed but skipped". Configurations use matcher groups (an event + a
+  matcher predicate + one or more handlers). Command handlers receive
+  the event payload on stdin and run with the session working
+  directory as context. `[MEDIUM]`
   ([learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks))
 - **Hook trust model (0.141.0) — ⚠️ security-relevant for automation.**
-  Enabled hooks now require **persisted hook trust** before they run.
-  `codex exec` (and the global CLI) expose `--dangerously-bypass-hook-trust`
-  to run enabled hooks without that persisted trust for a single
+  Enabled non-managed hooks require **persisted hook trust** before
+  they run. Trust is tied to each hook's **hash**, so a changed hook is
+  skipped until it is re-reviewed; `/hooks` reviews them. Managed hooks
+  are trusted by policy. `codex exec` (and the global CLI) expose
+  `--dangerously-bypass-hook-trust` (still in `codex exec --help`
+  0.162.1) to run enabled hooks without persisted trust for a single
   invocation. **Supervised-use-only:** this bypass runs unvetted hook
-  code — use it only in automation that already vets hook sources, never
-  as a default in scripts. Bypass state persists through `codex exec`
-  thread start + resume; blocking `PostToolUse` hooks correctly reject
-  code-mode tool calls. `[MEDIUM]`
-  ([github.com/openai/codex/releases](https://github.com/openai/codex/releases))
+  code. Use it only in automation that already vets hook sources, never
+  as a default in scripts. `[MEDIUM]`
+  ([learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks),
+  [github.com/openai/codex/releases](https://github.com/openai/codex/releases))
 - **Plugin-bundled + managed hooks:** plugins can ship hooks via their
-  manifest or a default `hooks/hooks.json` (env vars `PLUGIN_ROOT`,
-  `PLUGIN_DATA` available); enterprises can enforce managed hooks via
-  `requirements.toml`. Note: the dedicated `plugin_hooks` feature flag
-  was **removed** — plugin lifecycle hooks now fold into the core `hooks`
-  machinery. `[MEDIUM]`
+  manifest or a default `hooks/hooks.json`. The env vars `PLUGIN_ROOT`
+  and `PLUGIN_DATA` are available, plus `CLAUDE_PLUGIN_ROOT` /
+  `CLAUDE_PLUGIN_DATA` for compatibility. Enterprises enforce managed
+  hooks via `[hooks]` in `requirements.toml` (`managed_dir`,
+  `windows_managed_dir`). `allow_managed_hooks_only = true` ignores
+  user, project, session and plugin hooks. The dedicated `plugin_hooks`
+  feature flag stays **removed** (`features list` 0.162.1); plugin
+  lifecycle hooks fold into core `hooks`. `[MEDIUM]`
   ([learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks))
 - **Vendor coupling:** event names overlap conceptually with Claude Code's
-  set (`SessionStart`, `PreToolUse`, `PostToolUse`, `UserPromptSubmit`,
-  `Stop`) but are NOT a 1:1 superset. Claude Code exposes 31 events (as of v2.1.219);
-  Codex ~10. Cross-vendor parity is per-event translation, not a shared
-  set. `[STABLE]`
+  set (`SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`,
+  `UserPromptSubmit`, `Stop`) but are NOT a 1:1 superset. Claude Code
+  exposes 33 events (as of v2.1.319, per the 2026-11-08 `claude-code`
+  walk); Codex has 12 at binary 0.162.1 (14 per docs). Cross-vendor
+  parity is per-event translation, not a shared set. `[STABLE]`
 - **Repo posture:** hooks stay Claude-only by default. Codex hooks
   portabilized only when the hook prevents a destructive non-code
   action (rare). `[STABLE]`
@@ -343,43 +465,75 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
 
 ## 5. Auth
 
-- **Default mode:** "Sign in with ChatGPT" — OAuth flow against any paid
-  ChatGPT subscription (Plus / Pro $100 / Pro $200 / Business / Enterprise
-  / Edu) or the Free tier. With no flags, `codex` opens a browser for
-  OAuth on first run. `[STABLE]`
+- **Default mode:** "Sign in with ChatGPT", an OAuth flow against a paid
+  ChatGPT subscription (Plus / Pro / Business / Enterprise / Edu) or
+  the Free tier. The auth page no longer lists plans and defers to the
+  pricing page's "Feature availability" (§7). With no flags, `codex`
+  opens a browser for OAuth on first run. `[STABLE]`
   ([learn.chatgpt.com/docs/auth](https://learn.chatgpt.com/docs/auth))
-- **Credential storage — three modes via `cli_auth_credentials_store`:**
-  - `"file"` — plaintext at `~/.codex/auth.json` under `CODEX_HOME`
-    (default). Treat as a password; access tokens live here.
-  - `"keyring"` — OS-native credential store (macOS Keychain, Windows
-    Credential Manager, Linux Secret Service).
-  - `"auto"` — keyring first, falls back to `auth.json`.
+- **⚠️ Credential storage — FOUR modes via `cli_auth_credentials_store`
+  (was three).** The binary enum is `file`, `keyring`, `auto`,
+  `ephemeral`. A bogus value is rejected with `unknown variant …
+  expected one of …` (`--strict-config` probe, binary 0.162.1).
+  - `"file"`: plaintext `auth.json` under `CODEX_HOME`. Treat it as a
+    password; access tokens live here.
+  - `"keyring"`: OS-native credential store (macOS Keychain, Windows
+    Credential Manager, Linux Secret Service). Per the docs it "fails if
+    it is unavailable".
+  - `"auto"`: OS store first, falls back to `auth.json`.
+  - `"ephemeral"` (**new**): in-memory, for the life of the process
+    only.
 
-  Default behavior is file-based plaintext unless `cli_auth_credentials_store`
-  is set (re-verified 2026-07-18 — default unchanged; docs still say
-  treat `auth.json` like a password). `[STABLE]`
+  **The default is no longer stated on the docs page.** The prior
+  "plaintext `file` by default" claim was docs-sourced and is now
+  **unverified**; checking it needs an authenticated login, which this
+  walk did not run. Release notes add that auth guidance "now accounts
+  for keyring storage instead of implying credentials always reside in
+  `auth.json`" (#49361). `features list` 0.162.1 shows
+  `secret_auth_storage` as `stable false`. Until re-verified, assume
+  plaintext is possible and set `keyring` explicitly on shared machines
+  (§10). `[MEDIUM]` (was `[STABLE]`) `low-confidence` on the default
   ([learn.chatgpt.com/docs/auth](https://learn.chatgpt.com/docs/auth))
-- **Managed Bedrock + encrypted OAuth storage (0.140.0):** added managed
-  Amazon Bedrock API-key authentication and **encrypted local storage for
-  CLI and MCP OAuth credentials** (additive — does NOT change the
-  plaintext `auth.json` default above). Device-code login now surfaces
-  phishing-recognition warnings (0.144.0). `[MEDIUM]`
-  ([github.com/openai/codex/releases](https://github.com/openai/codex/releases))
-- **API key alternate:** `OPENAI_API_KEY` env var or
-  `codex login --with-api-key` (reads the key from stdin, e.g.
-  `printenv OPENAI_API_KEY | codex login --with-api-key`). The older
-  `--api-key` spelling is gone from the binary. Pay-per-token via the
-  OpenAI API; bypasses ChatGPT subscription limits. `[STABLE]`
-  (binary `codex login --help` 0.139.0)
-- **Device-code flow:** `codex login --device-auth` for headless / SSH
-  environments where a browser is unavailable. Renamed from `--device`.
-  `[STABLE]` (binary `codex login --help` 0.139.0,
+- **Managed Bedrock + encrypted OAuth storage (0.140.0):** managed
+  Amazon Bedrock API-key authentication plus **encrypted local storage
+  for CLI and MCP OAuth credentials**. Later additions:
+  - Bedrock Runtime as a built-in provider with AWS profiles (0.148.0)
+    and credentials from configured commands (0.155.0).
+  - Workload-identity token exchange (0.147.0–0.148.0). Per the docs,
+    when workload identity is selected "Codex rejects `codex login` and
+    `codex logout`".
+  - A built-in **Google Cloud Vertex AI** provider,
+    `model_provider = "gcp"` (rust-v0.165.0 #56265), `low-confidence`.
+  - Bedrock setup wizard on by default (rust-v0.164.0),
+    `low-confidence`.
+
+  `[MEDIUM]`
+  ([github.com/openai/codex/releases](https://github.com/openai/codex/releases),
   [learn.chatgpt.com/docs/auth](https://learn.chatgpt.com/docs/auth))
-- **Agent identity (experimental):** `codex login --with-agent-identity`
-  reads an Agent Identity token (`CODEX_AGENT_IDENTITY`) from stdin.
-  `[VOLATILE]` (binary `codex login --help` 0.139.0)
+- **API key alternate:** `OPENAI_API_KEY` env var or
+  `codex login --with-api-key`, which reads the key from stdin, e.g.
+  `printenv OPENAI_API_KEY | codex login --with-api-key`. The older
+  `--api-key` spelling is gone. Pay-per-token via the OpenAI API;
+  bypasses ChatGPT subscription limits. `[STABLE]`
+  (binary `codex login --help` 0.162.1)
+- **Access-token login (new):** `codex login --with-access-token` reads
+  an access token from stdin, e.g.
+  `printenv CODEX_ACCESS_TOKEN | codex login --with-access-token`.
+  `[MEDIUM]` (binary `codex login --help` 0.162.1,
+  [learn.chatgpt.com/docs/auth](https://learn.chatgpt.com/docs/auth))
+- **Device-code flow:** `codex login --device-auth` for headless / SSH
+  environments where a browser is unavailable (the docs label it
+  "beta"). Renamed from `--device`. `[STABLE]`
+  (binary `codex login --help` 0.162.1,
+  [learn.chatgpt.com/docs/auth](https://learn.chatgpt.com/docs/auth))
+- **Agent identity login REMOVED from the CLI:**
+  `codex login --with-agent-identity` is **absent** from
+  `codex login --help` 0.162.1 and is not on the auth docs page. Agent
+  identity survives only as internal plumbing in the release notes
+  (#34631, #37356). `[VOLATILE]` (binary `codex login --help` 0.162.1)
 - **Status check:** `codex login status` prints the active `auth_mode`
   and exits 0 when authenticated. Useful as a CI gate. `[STABLE]`
+  (binary `codex login --help` 0.162.1 lists `status`)
 - **Cross-vendor parity:** Claude Code defaults to Anthropic OAuth.
   Per-vendor subscription posture lives in each vendor's knowledge file.
   `[STABLE]`
@@ -388,46 +542,93 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
 
 ## 6. Rate limits — `[VOLATILE]`
 
-**Re-verify before relying. The Pro $100 2× promotional boost expired
-2026-05-31; as of this walk the pricing page carries no active boosts.**
+**Re-verify before relying.** As of 2026-11-08 the pricing page carries
+an active promotion: **"GPT-5.6 Sol's promotional pricing is available
+at least through November 21, 2026"** (learn.chatgpt.com/docs/pricing).
+The OpenAI API pricing page gives the GPT-5.6 Sol promo end as
+**November 30, 2026** (developers.openai.com/api/docs/pricing). **Both
+are recorded and neither is picked:** the Codex page's "at least
+through" phrasing is not strictly inconsistent with the API date, and
+the two pages may describe different surfaces (Codex credits vs API
+billing). Both are docs-only, read via a summarizing fetcher. The
+earlier Pro $100 2× boost expired 2026-05-31.
 
 - **Two windows, shared allowance:** Codex enforces a **5-hour rolling
-  window** plus **additional weekly limits**. Local messages and cloud
-  tasks draw from a combined allowance, not independent pools. Hitting
-  either window blocks further use until reset. `[VOLATILE]`
-  ([help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan](https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan),
-  [learn.chatgpt.com/docs/pricing](https://learn.chatgpt.com/docs/pricing))
+  window** plus **weekly limits** ("Weekly limits may also apply"; no
+  figures are published). Local messages and cloud tasks draw from a
+  combined allowance. **Pro is now different:** "Pro plans currently
+  have no five-hour limit." Plus and Team get an earlier warning once
+  less than half of the 5h allowance remains (rust-v0.152.0 /
+  0.153.0). `[VOLATILE]` docs-only (help.openai.com returned 403 this
+  walk)
+  ([learn.chatgpt.com/docs/pricing](https://learn.chatgpt.com/docs/pricing),
+  [help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan](https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan))
 - **April 9, 2026 restructure (historical):** OpenAI aligned Codex limits
   with API-token usage instead of per-message pricing for Plus, Pro, and
   Business plans. Treat older blog posts citing message-count-only
   limits as stale. `[VOLATILE]`
   ([community.openai.com/t/understanding-the-new-codex-limit-system-after-the-april-9-update/1378768](https://community.openai.com/t/understanding-the-new-codex-limit-system-after-the-april-9-update/1378768))
-- **Official sample 5h ranges (pricing page, updated 2026-07-18; now
-  model-dependent, so each tier shows a low-model→high-model envelope):**
-  - **Plus:** ~15–90 up to ~60–350 messages / 5h.
-  - **Pro 5× ($100/mo):** ~75–450 up to ~300–1,750 messages / 5h.
-  - **Pro 20× ($200/mo):** ~300–1,800 up to ~1,200–7,000 messages / 5h.
+- **Official sample 5h ranges, now PER MODEL (pricing page,
+  2026-11-08).** Local messages per 5 hours, Plus and Standard
+  Business:
 
-  Sample ranges, not contract. `[VOLATILE]`
+  | Model | Messages / 5h |
+  |---|---|
+  | GPT-6 Astra | 5–45 |
+  | GPT-6.1 Sol | 15–160 |
+  | GPT-6.1 Terra | 35–285 |
+  | GPT-6 Sol | 15–150 |
+  | GPT-6 Luna | 350–3,000 |
+
+  This replaces the 2026-07-18 per-tier envelopes (Plus ~15–90 up to
+  ~60–350; Pro 5× and Pro 20× ranges), which are no longer on the page.
+  Pro has no 5h limit (above). These are sample ranges, not a contract.
+  `[VOLATILE]` docs-only
   ([learn.chatgpt.com/docs/pricing](https://learn.chatgpt.com/docs/pricing))
-- **Model families (as of this walk):** GPT-5.6 (Sol / Terra / Luna
-  variants) is current alongside GPT-5.5, GPT-5.4, and GPT-5.4-mini;
-  GPT-5.3-Codex-Spark is in research preview (Pro-only). The exact model
-  chosen shifts the 5h range above. Model-selection detail is owned by
-  [`model-capabilities.md`](../model-capabilities.md); GPT-5.6 drift is
-  carried to that file's own walk. `[VOLATILE]`
-  ([learn.chatgpt.com/docs/pricing](https://learn.chatgpt.com/docs/pricing))
-- **Usage visibility (0.140.0+):** `/usage` shows daily / weekly /
-  cumulative token activity; earned usage-limit **reset credits** are
-  redeemable via `/usage` (0.142.0/0.144.0), and configurable rollout
-  token budgets warn + abort turns on exhaustion. `[MEDIUM]`
+- **Model lineup (for Codex behavior only; SSOT is
+  [`model-capabilities.md`](../model-capabilities.md)).**
+  - The bundled catalog (`codex debug models`, binary 0.162.1, 11 slugs)
+    lists `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna`,
+    `gpt-5.6-sol/terra/luna` ("Older…") and `gpt-5.5` ("Legacy coding
+    model"). Hidden slugs are `gpt-daybreak-blue/red-latest` (cyber,
+    gated) and `codex-auto-review`.
+  - **GPT-5.4 / GPT-5.4-mini are absent** from the catalog and the Codex
+    pricing page, and GPT-5.3-Codex-Spark is not on the pricing page.
+  - GPT-5.5 retired from Codex with ChatGPT sign-in on 2026-10-14 (per
+    the pricing page).
+  - `gpt-6.1-terra` arrives in rust-v0.165.0/0.166.0, `low-confidence`.
+  - The chosen model shifts the 5h range above. The default model is
+    covered in §9.
+
+  `[VOLATILE]`
+- **Usage visibility (0.140.0+):** `/usage` shows token activity and
+  became an analytics dashboard (account usage, token totals,
+  plugin/skill activity) in 0.156.0. Earned usage-limit **reset
+  credits** are redeemable via `/usage`. Rate-limit banners offer
+  check-usage / manage-credits / reset / manage-plan actions (0.152.0).
+  Configurable rollout token budgets warn and abort turns on exhaustion.
+  `[MEDIUM]`
   ([github.com/openai/codex/releases](https://github.com/openai/codex/releases))
-- **Weekly caps** apply to all paid tiers; on hit, users wait for reset
-  or **buy credits** at token-based rates (e.g. GPT-5.5 input ≈125
-  credits per million tokens — credits are the core pricing unit,
-  consumption computed from token usage). `[VOLATILE]`
-  ([learn.chatgpt.com/docs/pricing](https://learn.chatgpt.com/docs/pricing),
-  [help.openai.com/en/articles/20001106-codex-rate-card](https://help.openai.com/en/articles/20001106-codex-rate-card))
+- **Credits (pricing page, 2026-11-08).** On hitting limits, users wait
+  for reset or **buy credits**, priced per 1M tokens at Standard speed:
+
+  | Model | Input | Cached input | Output |
+  |---|---|---|---|
+  | GPT-6 Astra | 250 | 25 | 1,250 |
+  | GPT-6.1 Sol | 50 | 2.5 | 250 |
+  | GPT-6.1 Terra | 25 | 1.25 | 125 |
+  | GPT-6 Sol | 50 | 5 | 250 |
+  | GPT-6 Luna | 2.5 | 0.25 | 12.5 |
+  | GPT-5.6 Sol | 100 | 10 | 500 |
+  | GPT-5.6 Terra | 50 | 5 | 300 |
+  | GPT-5.6 Luna | 5 | 0.5 | 30 |
+
+  Fast mode costs 2× and Ultrafast 6× for purchased credits and
+  Enterprise pay-as-you-go. The prior "GPT-5.5 input ≈125 credits"
+  example is no longer on the page. `[VOLATILE]` docs-only
+  ([learn.chatgpt.com/docs/pricing](https://learn.chatgpt.com/docs/pricing);
+  [help.openai.com/en/articles/20001106-codex-rate-card](https://help.openai.com/en/articles/20001106-codex-rate-card)
+  returned 403 this walk)
 - **Recovery posture:** on rate-limit hit, abort and re-run via
   `cross-vendor-review.sh --to <other-vendor>`. No automatic API-key
   fallback. `[STABLE]`
@@ -437,72 +638,101 @@ The `last-verified` frontmatter date is the date of the **last applied change**,
 ## 7. Cost
 
 All paid ChatGPT plans include the Codex CLI. The Free tier also gets
-limited Codex CLI access. `[STABLE]`
+limited Codex access (Free users get GPT-6 Luna at Standard speed in
+the desktop app, subject to rollout). `[STABLE]`
 ([chatgpt.com/pricing](https://chatgpt.com/pricing/),
 [learn.chatgpt.com/docs/pricing](https://learn.chatgpt.com/docs/pricing))
 
-> **Pricing-page rendering artifact (2026-07-18):** the
-> [learn.chatgpt.com/docs/pricing](https://learn.chatgpt.com/docs/pricing)
-> fetch renders **Pro 20× as "From $100"** (same extraction artifact seen
-> on the Claude pricing page). The $200 in the table below is kept as
-> correct — the 5h sample-range table (§6) distinguishes 5× from 20×.
-> Prefer a browser check for exact Pro-tier pricing.
+> **Pricing-page rendering (2026-11-08):** the page reads Pro "From
+> $100/month" and "Plans at $100, $200, or $500 USD per month". This
+> resolves the 2026-07-18 "From $100" ambiguity and adds a **$500**
+> Pro tier. The fetch was model-summarized, so prefer a browser check
+> for exact Pro-tier pricing.
 
 | Tier | Price | Codex CLI | Notes |
 |---|---|---|---|
 | **Free** | $0/mo | Yes (limited) | Ad-supported in some regions |
 | **Go** | $8/mo | Yes | Ad-supported (US) |
-| **Plus** | $20/mo | Yes | Baseline 5h + weekly limits |
-| **Pro 5×** | $100/mo | Yes | 5× Plus limits |
-| **Pro 20×** | $200/mo | Yes | 20× Plus limits |
-| **Business** | $20/user/mo (2+ users, annual) | Yes | Matches Plus limits per seat; pay-as-you-go |
+| **Plus** | $20/mo | Yes | 5h (per-model, §6) + weekly limits |
+| **Pro** | $100 / $200 / $500 per mo | Yes | **No 5h limit** currently (§6); weekly limits may apply |
+| **Business** | $20/user/mo annual (2+ users); **$25 monthly** | Yes | Standard Business shares the Plus 5h table (§6). Release notes relabel "Business Pro Lite" as **"Business Premium"** (rust-v0.150.0 #40301); that tier is not on the pricing page |
 | **Enterprise / Edu** | contact sales | Yes | Custom limits |
 
-- **API alt:** Pay-per-token via OpenAI API (GPT-5.6 / GPT-5.5 / GPT-5.4
-  / GPT-5.4-mini). Bypasses subscription rate limits at standard token
-  cost. `[STABLE]` ([openai.com/api/pricing](https://openai.com/api/pricing/))
+`[VOLATILE]` docs-only. No "Ultra" plan exists: "Ultra" is a reasoning
+level (§3, §9).
+
+- **API alt:** pay-per-token via the OpenAI API (GPT-6 / GPT-6.1 /
+  GPT-5.6 / GPT-5.5 / GPT-5.4 families). Bypasses subscription rate
+  limits at standard token cost. Per-model rates live in
+  [`model-capabilities.md`](../model-capabilities.md) (SSOT). `[STABLE]`
+  ([developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing);
+  openai.com/api/pricing returns 403 to scripted fetches)
 - **Per-call cost in headless mode:** `codex exec --json` emits JSONL
   events including model name and token usage; budget caps live in
   `config.toml` (`[exec]` section). No equivalent of Claude Code's
-  `--max-budget-usd` flag is documented. `[MEDIUM]`
+  `--max-budget-usd` flag is documented. `/status` shows estimated
+  thread credits/cost for eligible workspaces (0.148.0). `[MEDIUM]`
 - **Credit top-ups:** on hitting included limits, credits are
-  purchasable at token-based rates (see §6). The 2026-04/05 Pro
-  promotional boost is over (expired 2026-05-31). `[VOLATILE]`
+  purchasable at token-based rates (§6 table). Active promo: GPT-5.6
+  Sol promotional pricing; both end dates are recorded in §6.
+  `[VOLATILE]`
   ([learn.chatgpt.com/docs/pricing](https://learn.chatgpt.com/docs/pricing))
 
 ---
 
-## 8. MCP (client + server)
+## 8. MCP (client only since 0.154.0)
 
-- **As client:** stable. Two transports — `stdio` (servers run as a local
-  process started by a command) and **Streamable HTTP** (servers reachable
-  at a URL). Configured via `[mcp_servers]` blocks in `config.toml` or via
-  `codex mcp add`. `[STABLE]`
+- **As client:** stable. Two transports: `stdio` (servers run as a
+  local process started by a command) and **Streamable HTTP** (servers
+  reachable at a URL). Configured via `[mcp_servers]` blocks in
+  `config.toml` or via `codex mcp add`. `codex mcp` subcommands at
+  0.162.1 are `list`, `get`, `add`, `remove`, `login`, `logout`.
+  `[STABLE]` (binary `codex mcp --help` 0.162.1,
+  [learn.chatgpt.com/docs/extend/mcp?surface=cli](https://learn.chatgpt.com/docs/extend/mcp?surface=cli))
+- **OAuth 2.0 supported:** `codex mcp login <server-name>` runs the
+  OAuth flow for HTTP servers that require auth (`--no-browser` for
+  terminals without one; `/mcp login <name>` in-session since 0.161.0).
+  Callback port and URL are configurable via `mcp_oauth_callback_port`
+  / `mcp_oauth_callback_url` (both accepted by `--strict-config`
+  0.162.1), with a per-server override
+  `mcp_servers.<name>.oauth.callback_port`. Confidential clients use
+  `codex mcp add --oauth-client-secret` (0.158.0); the secret is saved
+  in `config.toml`. `[STABLE]`
   ([learn.chatgpt.com/docs/extend/mcp?surface=cli](https://learn.chatgpt.com/docs/extend/mcp?surface=cli))
-- **OAuth 2.0 supported:** `codex mcp login <server-name>` runs the OAuth
-  flow for HTTP servers requiring auth. Callback port + URL configurable
-  via `mcp_oauth_callback_port` / `mcp_oauth_callback_url` in
-  `config.toml`. `[STABLE]`
-  ([learn.chatgpt.com/docs/extend/mcp?surface=cli](https://learn.chatgpt.com/docs/extend/mcp?surface=cli))
-- **As server: FIRST-PARTY.** `codex mcp-server` is a top-level
-  subcommand ("Start Codex as an MCP server (stdio)") — verified
-  against the binary on both 0.128.0 and 0.139.0. The docs site does
-  not document it yet; per the refresh protocol's channel-reliability
-  ordering, the binary wins this conflict. `[MEDIUM]`
-  (binary `codex --help` 0.139.0)
-- **Cross-vendor posture:** MCP cross-vendor servers still deferred —
-  shell invocation via [`cross-vendor-review.sh`](../../../scripts/)
-  remains today's answer. NOTE: the documented revisit trigger ("any
-  vendor ships first-party MCP server") **fired 2026-06-10** when
-  `codex mcp-server` was verified; the posture re-evaluation was
-  deferred by the supervisor to its own session. `[STABLE]`
+- **⚠️ As server: REMOVED (0.154.0).** `codex mcp-server` is gone. The
+  release notes say "The deprecated `codex mcp-server` entry point is
+  no longer available" (rust-v0.154.0 #42993). The subcommand is absent
+  from `codex --help` 0.162.1, and `codex mcp-server --help` falls
+  through to the top-level help. The docs say the command and the
+  standalone `codex-mcp-server` binary "have been removed" and point to
+  the Codex **app server** (`codex app-server`, experimental), which is
+  a different protocol. This reverses the 2026-06-10 → 2026-08-25
+  "FIRST-PARTY server mode" claim. `[MEDIUM]` (binary `codex --help`
+  0.162.1, release rust-v0.154.0,
+  [learn.chatgpt.com/docs/developer-commands?surface=cli](https://learn.chatgpt.com/docs/developer-commands?surface=cli))
+- **Cross-vendor posture:** cross-vendor MCP servers remain deferred,
+  and shell invocation via [`cross-vendor-review.sh`](../../../scripts/)
+  is still the answer. The revisit trigger ("any vendor ships
+  first-party MCP server") fired 2026-06-10 on `codex mcp-server`; that
+  instance **no longer exists** as of 0.154.0. No peer vendor in the
+  harness currently ships an MCP server mode. `[STABLE]`
 - **Remote stdio executor:** `[mcp_servers.<name>]` supports a remote
-  executor for running stdio servers off-box; distinct from server-mode.
+  executor for running stdio servers off-box. This is distinct from
+  server mode. `[MEDIUM]`
+- **Recent MCP behavior:**
+  - Tool search became the default in 0.143.0. The `tool_search` /
+    `search_tool` feature flags now read `removed` in `features list`
+    0.162.1; I did not verify whether that means always-on.
+  - MCP tools can request interactive authentication without an opt-in
+    (0.144.0).
+  - Opt-in MCP 2026-07-28 protocol (0.147.0).
+  - Per-tool `output_token_limit` (0.152.0), and server names may
+    contain `:` `@` `/` `.` (0.152.0).
+  - A configurable discovery grace period for optional servers
+    (0.151.0).
+  - Touch ID verification for MCP requests on supported Macs (0.155.0).
+
   `[MEDIUM]`
-- **Recent MCP behavior (0.143.0/0.144.0):** MCP tools now use **tool
-  search by default**; ChatGPT-hosted MCP servers can opt into session
-  authentication; MCP tools can request interactive authentication
-  **without an experimental opt-in** (0.144.0). `[MEDIUM]`
   ([github.com/openai/codex/releases](https://github.com/openai/codex/releases))
 
 ---
@@ -510,147 +740,288 @@ limited Codex CLI access. `[STABLE]`
 ## 9. Headless invocation
 
 - **Entry point:** `codex exec "<prompt>"` (alias `codex e`). Runs the
-  agent loop without opening the TUI; finishes without human interaction.
-  Used by the SDK and by scripts. `[STABLE]`
-  ([learn.chatgpt.com/docs/non-interactive-mode](https://learn.chatgpt.com/docs/non-interactive-mode))
+  agent loop without opening the TUI and finishes without human
+  interaction. Used by the SDK and by scripts. Exec subcommands at
+  0.162.1 are `resume`, `fork` (0.148.0) and `review`. Docs:
+  "`codex exec` runs in a read-only sandbox" by default. The exec
+  banner at 0.162.1 shows `approval: never`, `sandbox: read-only`.
+  `[STABLE]` (binary `codex exec --help` 0.162.1,
+  [learn.chatgpt.com/docs/non-interactive-mode](https://learn.chatgpt.com/docs/non-interactive-mode))
 - **Sandbox flag — three values:** `--sandbox read-only`,
   `--sandbox workspace-write`, `--sandbox danger-full-access`. `[STABLE]`
+  (binary `codex exec --help` 0.162.1,
+  [learn.chatgpt.com/docs/developer-commands?surface=cli](https://learn.chatgpt.com/docs/developer-commands?surface=cli))
+- **Approval flag — TWO values now (was four); interactive `codex`
+  only.** `--ask-for-approval` / `-a` accepts only `on-request` and
+  `never`. `untrusted` and `on-failure` are both rejected with `invalid
+  value … for '--ask-for-approval'` (execution, binary 0.162.1).
+  `untrusted` was retired in rust-v0.149.0 (#39630); the docs list only
+  `on-request` and `never`. `codex exec` still accepts no approval
+  flag (removed in 0.128.0). `--full-auto` is gone from both `codex`
+  and `codex exec` ("unexpected argument", 0.162.1); the docs say "no
+  longer supported; use `--sandbox workspace-write`". `[STABLE]`
   ([learn.chatgpt.com/docs/developer-commands?surface=cli](https://learn.chatgpt.com/docs/developer-commands?surface=cli))
-- **Approval flag — four values (interactive `codex` only; removed from `codex exec` in 0.128.0):** `--ask-for-approval untrusted`, `on-request`, `never`, `on-failure` (deprecated). `codex exec` mode runs non-interactive by default in 0.128.0+; no approval flag accepted there. `[STABLE]`
-  ([learn.chatgpt.com/docs/developer-commands?surface=cli](https://learn.chatgpt.com/docs/developer-commands?surface=cli))
+- **Auto-reviewed approvals:** `--approve-for-me` (0.147.0; both
+  `codex` and `codex exec`) routes approval requests through automatic
+  review using the workspace-write sandbox. It **conflicts with
+  `--sandbox`**: clap reports "`--approve-for-me` cannot be used with
+  `--sandbox`" (0.162.1). `[MEDIUM]` (binary `codex exec --help`
+  0.162.1)
+- **⚠️ Hidden alias flags — security-relevant for script audits.** Two
+  aliases parse but **do not appear in `--help`**:
+  - **`--yolo`** = `--dangerously-bypass-approvals-and-sandbox`. Clap
+    reports the canonical name: `codex --yolo --approve-for-me` →
+    "the argument '--dangerously-bypass-approvals-and-sandbox' cannot
+    be used with '--approve-for-me'".
+  - **`--not-so-yolo`** = `--approve-for-me`.
+
+  Both are accepted by `codex` and `codex exec` (execution, binary
+  0.162.1; docs name `--not-so-yolo` and reference `--yolo`). **A grep
+  audit for `dangerously` misses `--yolo`.** Any script or CI scan for
+  unsafe Codex invocations must match `--yolo` too. `[MEDIUM]`
 - **Output-last-message flag:** `--output-last-message <path>` (short
-  `-o <path>`). Writes the assistant's final message to a file, stdout
-  unchanged. The cross-vendor reviewer rubric reads this file. `[STABLE]`
-  ([learn.chatgpt.com/docs/developer-commands?surface=cli](https://learn.chatgpt.com/docs/developer-commands?surface=cli),
+  `-o <path>`). Writes the assistant's final message to a file and
+  leaves stdout unchanged. The cross-vendor reviewer rubric reads this
+  file. `[STABLE]` (binary `codex exec --help` 0.162.1,
   [learn.chatgpt.com/docs/non-interactive-mode](https://learn.chatgpt.com/docs/non-interactive-mode))
-- **JSONL stream:** `--json` switches stdout to JSON Lines — one event per
-  line, includes model name, tool calls, token usage, errors. Pipe to
-  `jq` for parsing. `[STABLE]`
+- **JSONL stream:** `--json` switches stdout to JSON Lines, one event
+  per line, including model name, tool calls, token usage and errors.
+  Pipe to `jq` for parsing. `[STABLE]`
 - **Repo skip:** `--skip-git-repo-check` allows running outside a git
-  repo. Only set when the environment is known safe. `[STABLE]`
+  repo. Only set it when the environment is known safe. The error
+  without it now reads "Not inside a **trusted** directory and
+  --skip-git-repo-check was not specified" (0.162.1; see §1
+  trust-gating). `[STABLE]`
 - **Structured output:** `--output-schema <FILE>` constrains the model's
   final response to a JSON Schema. Candidate replacement for the
   rubric's string-matching contract in `cross-vendor-review.sh`
   (evaluation queued, not adopted). `[MEDIUM]`
-  (binary `codex exec --help` 0.139.0)
-- **Other exec flags (binary 0.139.0):** `--ephemeral` (no session
-  files persisted), `--ignore-user-config` (skip `$CODEX_HOME/config.toml`;
-  auth still uses `CODEX_HOME`), `--ignore-rules` (skip execpolicy
-  `.rules` files), `--enable <FEATURE>` / `--disable <FEATURE>`
-  (per-invocation feature toggles), `-p/--profile <name>` (layer
-  `$CODEX_HOME/<name>.config.toml`), `--add-dir <DIR>` (extra writable
-  roots), `-C/--cd <DIR>` (working root), `-i/--image <FILE>`, `--oss` /
-  `--local-provider <lmstudio|ollama>` (local model providers),
-  `--strict-config`, `--color <always|never|auto>`. `[MEDIUM]`
-  (binary `codex exec --help` 0.139.0)
-- **⚠️ `codex exec` READS STDIN even when the prompt is an argument.**
-  When stdin is not a TTY, `codex exec` appends stdin to the prompt and
-  **blocks waiting for EOF**, printing `Reading additional input from
-  stdin...`. It therefore works when a human runs it in a terminal and
-  **hangs forever** in CI, background jobs, or piped contexts unless the
-  caller closes stdin (`< /dev/null`). Found empirically 2026-08-25 when
+  (binary `codex exec --help` 0.162.1)
+- **Other exec flags (binary 0.162.1):**
+  - Unchanged since 0.139.0:
+    - `--ephemeral`: no session files persisted.
+    - `--ignore-user-config`: skips `$CODEX_HOME/config.toml`; auth
+      still uses `CODEX_HOME`.
+    - `--ignore-rules`: skips execpolicy `.rules` files.
+    - `--enable <FEATURE>` / `--disable <FEATURE>`.
+    - `-p/--profile <name>`: layers `$CODEX_HOME/<name>.config.toml`.
+    - `--add-dir <DIR>`.
+    - `-C/--cd <DIR>`.
+    - `-i/--image <FILE>`.
+    - `-m/--model <MODEL>`.
+    - `--oss` / `--local-provider <lmstudio|ollama>`.
+    - `--strict-config`.
+    - `--color <always|never|auto>`.
+  - **New since last walk:**
+    - `--worktree`: runs in a new managed Git worktree (0.154.0;
+      worktrees default-on in 0.156.0).
+    - `--thread-source <SOURCE>`.
+    - `--cyber-access-program <standard|daybreak_blue|daybreak_red>`:
+      per-turn Cyber access program, OpenAI provider only (0.161.0).
+      Daybreak becomes default-enabled for eligible accounts in
+      rust-v0.163.0, `low-confidence`.
+  - Top-level only:
+    - `--remote <ADDR>` and `--remote-auth-token-env`: connect the TUI
+      to a remote app server.
+    - `--no-daemon` (0.156.0).
+    - `--search`: live web search.
+
+  `[MEDIUM]` (binary `codex --help` / `codex exec --help` 0.162.1)
+- **⚠️ `codex exec` READS STDIN even when the prompt is an argument —
+  still true at 0.162.1, now documented.** The help text says: "If stdin
+  is piped and a prompt is also provided, stdin is appended as a
+  `<stdin>` block". The docs say Codex "treats the prompt as the
+  instruction and the piped content as additional context". The run
+  prints `Reading additional input from stdin...` and **blocks until
+  EOF**. Re-verified by execution 2026-11-08: `sleep 10 | codex exec
+  "hi"` printed only that line and stayed blocked until a 6 s alarm;
+  with `</dev/null` it proceeds immediately. It works when a human runs
+  it in a terminal and **hangs forever** in CI, background jobs or
+  piped contexts unless the caller closes stdin (`< /dev/null`).
   [`cross-vendor-review.sh`](../../../scripts/cross-vendor-review.sh)
-  produced zero bytes across two runs totalling 11 minutes; the script
-  does not close stdin. `[MEDIUM]` (empirical, binary 0.144.5)
+  closes stdin on every vendor branch (fixed 2026-08-25). `[MEDIUM]`
+  (execution + `codex exec --help` 0.162.1)
 - **`--strict-config` is the config-schema discriminator.** It rejects
-  unrecognised keys, which makes it the correct tool for verifying a
-  config claim by execution rather than by page-fetch. Caveat found
-  2026-08-25: it validates the **table** level but not inside
-  `AgentRoleToml` — a nonsense field inside an inline agent struct is
-  silently accepted, so it cannot confirm agent-file fields. `[MEDIUM]`
-  (empirical, binary 0.144.5)
+  unrecognised table-level keys (`unknown configuration field`), which
+  makes it the right tool for verifying a config claim by execution
+  rather than by page-fetch. Scope at 0.162.1:
+  - It validates table-level keys and scalar types.
+  - It does NOT validate fields inside inline `[agents.<name>]`
+    tables beyond their few typed fields.
+  - Standalone agent files are strictly deserialized, but failures
+    there are **warnings**, not errors (§3).
+  - It does NOT validate enum-like string values that are checked
+    later. See the reasoning-effort bullet below.
+
+  An accepted config with no auth proceeds to a 401 before any model
+  call, so schema probes cost nothing. `[MEDIUM]` (execution, binary
+  0.162.1)
+- **Default model and reasoning effort (binary 0.162.1).**
+  - **The bundled default model is `gpt-6.1-sol`.** The exec banner in
+    a fresh, unconfigured `CODEX_HOME` shows `model: gpt-6.1-sol`;
+    release rust-v0.159.1/0.161.0 say "GPT-6.1 Sol is now the default
+    model". This follows a brief `gpt-6-astra` default in 0.153.4.
+  - Catalog `supported_reasoning_levels` (`codex debug models`) are
+    `low, medium, high, xhigh, max, ultra` on most current models.
+    Luna variants and `codex-auto-review` top out at `max`; `gpt-5.5`
+    tops out at `xhigh`. **`ultra` is new**: SDK in 0.149.0, Bedrock
+    in 0.161.0. `none` and `minimal` are listed for no model.
+  - **⚠️ An invalid effort value is NOT rejected at config load:**
+    `-c model_reasoning_effort="bogus"` passes `--strict-config` and the
+    banner echoes `reasoning effort: bogus`. Only the type is checked
+    (`=1` → `expected a string`). Config acceptance therefore proves
+    nothing about an effort value's validity; check it against the
+    catalog. The dispatcher's `medium` is valid because every catalog
+    model lists it.
+  - In a fresh home the banner shows `reasoning effort: none` while the
+    catalog's `default_reasoning_level` for `gpt-6.1-sol` is `low`.
+    The effective default is unverified.
+  - Model inventory and rates belong to
+    [`model-capabilities.md`](../model-capabilities.md) (SSOT).
+
+  `[VOLATILE]` (execution + `codex debug models` 0.162.1)
 - **Global reasoning effort leaks into scripted calls.** `codex exec`
   inherits `model_reasoning_effort` from `~/.codex/config.toml`
-  (`xhigh` on this machine), with no per-invocation default. A 553-line
-  diff review at `xhigh` exceeded 9 minutes. Scripted callers that need
-  predictable latency should pass
-  `-c model_reasoning_effort="medium"` explicitly. `[MEDIUM]`
-  (empirical, binary 0.144.5)
+  (`xhigh` on the reference machine), with no per-invocation default.
+  A 553-line diff review at `xhigh` exceeded 9 minutes. Scripted
+  callers that need predictable latency should pass
+  `-c model_reasoning_effort="medium"` explicitly. The dispatcher does
+  (fixed 2026-08-25). `[MEDIUM]` (empirical, binary 0.144.5;
+  re-confirmed 0.162.1)
+- **⚠️ Global MODEL also leaks into scripted calls — dispatcher NOT
+  fixed.** `codex exec` with no `-m` inherits the operator's global
+  `model`. On the reference machine that is **`gpt-6-astra`**, the
+  frontier tier, at 250 input credits per 1M tokens versus 50 for
+  `gpt-6.1-sol` (§6). The codex branch of
+  [`cross-vendor-review.sh`](../../../scripts/cross-vendor-review.sh)
+  passes **no `-m`**, so a Tier 1/2 review runs on whatever model the
+  operator happens to use. The claude branch, by contrast, pins
+  `--model sonnet`. **Approved fix, DEFERRED to a separate Tier 1 PR
+  (supervisor ruling R4, 2026-11-08):** pin the workhorse tier
+  (`-m gpt-6.1-sol` today), per
+  [`model-capabilities.md`](../model-capabilities.md) "Code review on
+  Tier 1/Tier 2 → workhorse". Tracked in the
+  [`refresh-log.md`](../refresh-log.md) residuals. **Not fixed as of
+  this walk.** `[MEDIUM]` (dispatcher read + exec banner, binary
+  0.162.1)
 - **Dangerous bypass flags — ⚠️ supervised-use-only.**
-  `--dangerously-bypass-approvals-and-sandbox` skips ALL confirmation
-  prompts and runs commands **without sandboxing** (only for externally
-  sandboxed environments); `--dangerously-bypass-hook-trust` runs enabled
-  hooks without persisted hook trust (§4). Both execute unvetted code —
-  never wire them into scripts as a default; the cross-vendor review
-  invocation below uses neither. `[MEDIUM]`
-  (binary `codex exec --help` 0.139.0)
-- **Session resumption:** `codex exec resume <session-id>` resumes a
-  prior exec session. `[MEDIUM]`
-- **Adjacent subcommands (binary 0.139.0):** `codex review` runs a
-  **non-interactive code review** against the current repository
-  (candidate alternative to `codex exec` for the cross-vendor
-  dispatcher — evaluation queued); `codex features list|enable|disable`
-  inspects feature flags; `codex update` self-updates; `codex fork`
-  forks a prior session; `codex sandbox` runs arbitrary commands in the
-  Codex sandbox; `codex cloud` (experimental) browses Codex Cloud
-  tasks. **New since last walk:** `codex doctor` (diagnose install /
-  config / auth / runtime health), `codex apply` (alias `a`, applies the
-  agent's latest diff as `git apply`), `codex delete` + `/delete`
-  (permanent session deletion with subagent cleanup, 0.140.0), `codex
-  archive`/`unarchive`, `codex completion` (shell completions), `codex
-  debug`, `codex app` (desktop app), and experimental `app-server` /
-  `exec-server` / `remote-control` (incl. `remote-control pair`,
-  0.143.0). `[MEDIUM]` (binary `codex --help` 0.139.0)
-- **Cross-vendor review flag set** (consumed by `scripts/cross-vendor-review.sh` per [`cross-vendor-review.md`](../../protocols/cross-vendor-review.md)):
+  - `--dangerously-bypass-approvals-and-sandbox` (hidden alias
+    **`--yolo`**, above) skips ALL confirmation prompts and runs
+    commands **without sandboxing**. Use it only in externally
+    sandboxed environments.
+  - `--dangerously-bypass-hook-trust` runs enabled hooks without
+    persisted hook trust (§4).
+
+  Both execute unvetted code; never wire them into scripts as a
+  default. The cross-vendor review invocation below uses neither.
+  `[MEDIUM]` (binary `codex exec --help` 0.162.1)
+- **Session resumption / forking:** `codex exec resume <session-id>`
+  (or `--last`) resumes a prior exec session. `codex exec fork` forks
+  one (0.148.0). `[MEDIUM]` (binary `codex exec --help` 0.162.1)
+- **Adjacent subcommands (binary 0.162.1):**
+  - `codex review` runs a **non-interactive code review**, now with
+    `--uncommitted`, `--base <BRANCH>`, `--commit <SHA>`, `--title`.
+    It is a candidate alternative to `codex exec` for the cross-vendor
+    dispatcher; evaluation is queued.
+  - Still present: `features list|enable|disable`, `update`, `fork`,
+    `sandbox`, `cloud` (experimental), `doctor` (`--network-only` in
+    rust-v0.166.0, `low-confidence`), `apply`/`a`, `delete`,
+    `archive`/`unarchive`, `completion`, `debug`, `app`, `app-server`,
+    `exec-server`, `remote-control`.
+  - **New since last walk:**
+    - `codex agents`: agent command center over the shared local
+      app-server daemon (0.149.0).
+    - `codex queue`: message an existing session (0.149.0;
+      `--resume` in rust-v0.166.0, `low-confidence`).
+    - `codex resume`: top-level session resume.
+    - `codex migrate-rollouts`.
+    - `codex debug models`: renders the bundled model catalog as
+      JSON, works offline.
+    - `codex debug prompt-input`.
+    - `codex app-server daemon|proxy|generate-ts|generate-json-schema`.
+  - **Removed:** `codex mcp-server` (0.154.0, §8).
+
+  `[MEDIUM]` (binary `codex --help` 0.162.1)
+- **Cross-vendor review flag set** (consumed by
+  `scripts/cross-vendor-review.sh` per
+  [`cross-vendor-review.md`](../../protocols/cross-vendor-review.md)):
 
   ```
   codex exec \
     --sandbox read-only \
+    -c 'model_reasoning_effort="medium"' \
     --output-last-message <path> \
-    "<prompt>"
+    "<prompt>" </dev/null
   ```
 
-  `--ask-for-approval never` was used pre-codex-0.128.0; the flag was
-  removed upstream. The active vendor invocation in
-  `scripts/cross-vendor-review.sh` is the source of truth.
+  **Every flag is verified at binary 0.162.1.** The exact set was run
+  in a scratch git repo with no auth, and the banner showed `approval:
+  never`, `sandbox: read-only`, `reasoning effort: medium` before the
+  expected 401. **No `-m` is passed**; see the model-leak bullet above
+  (fix deferred, R4). `--ask-for-approval never` was used before codex
+  0.128.0; the flag was removed upstream. The active vendor invocation
+  in `scripts/cross-vendor-review.sh` is the source of truth.
 
-  `--sandbox read-only` blocks all writes; `codex exec` 0.128.0+ runs
-  non-interactive without an approval flag; `--output-last-message`
-  captures the reviewer verdict for the script to parse. `[STABLE]`
+  `--sandbox read-only` blocks all writes. `codex exec` 0.128.0+ runs
+  non-interactive without an approval flag. `--output-last-message`
+  captures the reviewer verdict for the script to parse. `</dev/null`
+  prevents the stdin hang. `[STABLE]`
 
 ---
 
 ## 10. Gaps / Codex-CLI-down notes
 
 - **Skills: first-party, NOT a gap anymore.** Codex auto-discovers and
-  auto-invokes `.agents/skills/` (open Agent Skills standard) — see §2.
+  auto-invokes `.agents/skills/` (open Agent Skills standard); see §2.
   The repo's root `.agents/skills/` works on Codex out of the box. The
   prior "no first-party skills primitive" gap (carried through the
   2026-06-10 walk) is closed as of 2026-06-20. `[MEDIUM]`
   ([learn.chatgpt.com/docs/build-skills](https://learn.chatgpt.com/docs/build-skills))
-- **Subagent depth capped at 1 by default** (`max_depth=1`; key
-  existence binary-confirmed at 0.144.5, default value docs-sourced;
-  raisable via config). The cross-vendor head-to-head is **rebuilt in
-  §3** as of 2026-08-25 and the pending marker is retired. Headline:
-  the meaningful asymmetry is **delegation posture** (Codex
-  explicit-request-only vs Claude description-match auto-routing), not
-  nesting depth. `[STABLE]`
+- **Subagent caps: keys exist, defaults unstated.** `agents.max_depth`,
+  `agents.max_concurrent_threads_per_session` (legacy alias
+  `max_threads`) and `agents.job_max_runtime_seconds` are typed keys at
+  binary 0.162.1. The docs no longer state their defaults (previously
+  1 / 6 / 1800), so treat those numbers as unsourced. The cross-vendor
+  head-to-head is **updated in §3** (2026-11-08). Headline: the
+  meaningful asymmetry is still **delegation posture** (Codex
+  explicit-request by default vs Claude description-match
+  auto-routing), and **both vendors now offer a global subagent-model
+  default**. Only Claude Code's is enforceable today; Codex's is
+  schema-confirmed, with honored-at-spawn `low-confidence`. `[MEDIUM]`
 - **Hooks default-on since ~0.13x** (canonical flag key `hooks`,
   deprecated alias `codex_hooks`). The old "flag required, silent
-  failure" gap is resolved; only relevant if a config explicitly sets
-  `hooks = false`. **New (0.141.0):** enabled hooks require persisted
-  **hook trust**; `--dangerously-bypass-hook-trust` bypasses it —
-  supervised-use-only (§4/§9). `[MEDIUM]` (binary `codex features list`
-  0.139.0, [learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks))
-- **MCP server-mode now first-party** (`codex mcp-server`, stdio) but
-  undocumented on the docs site and unadopted here. Cross-tool fan-out
-  stays on shell-invocation cross-vendor review until the deferred
-  posture session (§8) decides otherwise. `[MEDIUM]`
-  (binary `codex --help` 0.139.0)
-- **Auth credentials default to plaintext** at `~/.codex/auth.json`. For
-  shared dev machines, set `cli_auth_credentials_store = "keyring"` in
-  `~/.codex/config.toml`. `[STABLE]`
-- **Rate-limit numbers are sample ranges, not contract.** OpenAI now
-  publishes official sample 5h ranges per tier on the pricing page
-  (see §6), but variation reflects task complexity — treat as
-  envelopes. Older third-party message-count posts are stale and were
-  dropped from §6 this walk. `[VOLATILE]`
+  failure" gap is resolved; it only matters if a config explicitly sets
+  `hooks = false`.
+  - Enabled hooks require persisted, hash-keyed **hook trust**.
+    `--dangerously-bypass-hook-trust` bypasses it and is
+    supervised-use-only (§4/§9).
+  - Project hooks load only from a trusted `.codex/` layer.
+  - **Unknown event names are silently ignored** (§4), so a misspelled
+    event never fires.
+
+  `[MEDIUM]` (binary `codex features list` + hooks.json probes 0.162.1,
+  [learn.chatgpt.com/docs/hooks](https://learn.chatgpt.com/docs/hooks))
+- **MCP server mode: GONE (0.154.0).** `codex mcp-server` was removed
+  (§8). Cross-tool fan-out stays on shell-invocation cross-vendor
+  review. The 2026-06-10 trigger instance no longer exists. `[MEDIUM]`
+  (binary `codex --help` 0.162.1, release rust-v0.154.0)
+- **Auth credentials may be plaintext** at `$CODEX_HOME/auth.json` (the
+  `file` store). The docs no longer state which store is the default
+  (§5, `low-confidence`). On shared dev machines, set
+  `cli_auth_credentials_store = "keyring"` explicitly in
+  `~/.codex/config.toml`. `[MEDIUM]`
+- **Project instructions need trust.** A fresh adopter clone is
+  untrusted, so Codex skips its project `AGENTS.md` until the user
+  trusts the project (§1). `[MEDIUM]`
+- **Rate-limit numbers are sample ranges, not contract.** OpenAI
+  publishes per-model sample 5h ranges on the pricing page (§6), and
+  Pro currently has no 5h limit. Variation reflects task complexity, so
+  treat the figures as envelopes. `[VOLATILE]`
   ([learn.chatgpt.com/docs/pricing](https://learn.chatgpt.com/docs/pricing))
 - **Codex-CLI-down posture:** every meta-layer artifact in
-  [`markdowns/`](../../) is acceptable in degraded mode. Substance
-  (markdown, AGENTS.md, protocols, scripts) is portable; the loss is
-  parallel subagent fan-out for deep-dive sessions on heavy surfaces.
-  `[STABLE]`
+  [`markdowns/`](../../) works in degraded mode. Substance (markdown,
+  AGENTS.md, protocols, scripts) is portable; what's lost is parallel
+  subagent fan-out for deep-dive sessions on heavy surfaces. `[STABLE]`
 
 ## See also
 
