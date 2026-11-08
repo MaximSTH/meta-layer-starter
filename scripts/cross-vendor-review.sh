@@ -353,25 +353,32 @@ if not isinstance(d, dict):
     print("REFUSE unparseable JSON envelope"); sys.exit()
 if d.get("status") != "SUCCESS":
     print("REFUSE status=%s" % d.get("status")); sys.exit()
-if d.get("denied_actions"):
+if d.get("denied_actions") not in (None, []):
     print("REFUSE denied_actions=%s" % json.dumps(d["denied_actions"])); sys.exit()
-if d.get("finished_reason"):
-    print("REFUSE finished_reason=%s" % d["finished_reason"]); sys.exit()
-r = d.get("response") or ""
-if not r.strip():
+# Presence, not truthiness: a normal turn omits the key entirely (observed
+# 1.5.3), so any finished_reason -- even "" or null -- means not-normal.
+if "finished_reason" in d:
+    print("REFUSE finished_reason=%s" % json.dumps(d["finished_reason"])); sys.exit()
+r = d.get("response")
+if not isinstance(r, str) or not r.strip():
     print("REFUSE empty response"); sys.exit()
 print("OK"); sys.stdout.write(r)
 '
       elif command -v jq >/dev/null 2>&1; then
-        # No "{" at all leaves jq with empty input and no output; the
-        # final fallback turns that silence into an explicit refusal.
-        { sed -n '/{/,$p' | jq -r '
+        # -s slurps the whole input first, so trailing junk is a parse
+        # error before anything is printed, and exactly ONE envelope is
+        # required (a stream of envelopes could otherwise print OK for the
+        # first and accept a denied second). No "{" at all leaves jq with
+        # no output; the final fallback turns that into a refusal.
+        { sed -n '/{/,$p' | jq -rs '
+          if length != 1 then "REFUSE expected exactly one JSON envelope"
+          else .[0] |
           if type != "object" then "REFUSE unparseable JSON envelope"
           elif .status != "SUCCESS" then "REFUSE status=\(.status)"
-          elif ((.denied_actions // []) | length) > 0 then "REFUSE denied_actions=\(.denied_actions | tojson)"
-          elif .finished_reason then "REFUSE finished_reason=\(.finished_reason)"
-          elif ((.response // "") | test("\\S") | not) then "REFUSE empty response"
-          else "OK\n" + .response end' 2>/dev/null || echo "REFUSE unparseable JSON envelope"; } |
+          elif (.denied_actions // []) != [] then "REFUSE denied_actions=\(.denied_actions | tojson)"
+          elif has("finished_reason") then "REFUSE finished_reason=\(.finished_reason | tojson)"
+          elif ((.response | type) != "string") or ((.response | test("\\S")) | not) then "REFUSE empty response"
+          else "OK\n" + .response end end' 2>/dev/null || echo "REFUSE unparseable JSON envelope"; } |
           { IFS= read -r first || { echo "REFUSE unparseable JSON envelope"; exit 0; }; printf '%s\n' "$first"; cat; }
       else
         echo "REFUSE neither python3 nor jq is available to verify the agy JSON envelope"
