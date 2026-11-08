@@ -16,13 +16,13 @@ own that process, not rent it from one vendor. If an agent saying
 > months of internal use on a real production codebase, but external
 > feedback hasn't shaped them yet. File issues, expect it to change.
 
-**Recent — 2026-07-18 vendor refresh walks.** Antigravity v1.1.4 headless
-mode did **not** honor `read_file` permission grants under strict policy, so
-the cross-vendor dispatcher now embeds the review target inline (no read
-grant needed) and **fails closed** on any permission denial. Also landed: a
-model-drift consistency-sweep rule in `/refresh-vendor`, and a required
-pre-push gitleaks secret gate. Details in
-[`refresh-log.md`](markdowns/agents/refresh-log.md).
+**Recent — 2026-11-08 vendor refresh.** All three vendor knowledge files
+re-walked against Claude Code 2.1.319, Codex 0.162.1 and Antigravity 1.5.3.
+Two known gaps in the cross-vendor dispatcher are open and being fixed:
+Antigravity's newer headless denial notice slips past the fail-closed check
+(so Antigravity review stays **disabled** until it's fixed and re-probed),
+and Codex reviews inherit your personal Codex model instead of a pinned
+workhorse. Details in [`refresh-log.md`](markdowns/agents/refresh-log.md).
 
 ## What this template gives you
 
@@ -30,7 +30,7 @@ pre-push gitleaks secret gate. Details in
 | Layer | What's in here | What you'll add |
 |---|---|---|
 | **Meta layer** | 18 **protocols** (pre-ship gates, cross-vendor review with fail-closed peer dispatch, supervision incl. the pre-push secret gate, vendor refresh incl. the model-drift consistency sweep, build/refactor flows, evidence + iteration + failure-attribution discipline, markdown lifecycle, doc consistency, etc.) + vendor knowledge files for Claude Code / Codex CLI / Antigravity CLI + a vendor-neutral model-tier reference (frontier / workhorse / light, incl. the search→light rule) | Brand guide, personas, copywriting register, interaction-performance standard, product plans |
-| **Harness** | 4 meta-skills (`/build-feature`, `/refactor-extract`, `/refresh-vendor`, `/doc-consistency`) + Claude Code hooks (secret-file deny + write-guard) + **model-guardrail agents** (`.claude/agents/` — search and web-research subagents ship pinned to a cheap model instead of inheriting your session model; verified at the API-request level) + sync scripts (AGENTS.md → CLAUDE.md, `.agents/skills/` → `.claude/skills/`) + a pre-commit stub | Project-specific drift checks, lint config, file-size hooks |
+| **Harness** | 4 meta-skills (`/build-feature`, `/refactor-extract`, `/refresh-vendor`, `/doc-consistency`) + Claude Code hooks (secret-file deny + write-guard) + **model-guardrail agents** (`.claude/agents/` — search and web-research subagents ship pinned to a cheaper model by default instead of inheriting your session model; verified at the API-request level. The pin is a default — a per-call model choice can still override it) + sync scripts (AGENTS.md → CLAUDE.md, `.agents/skills/` → `.claude/skills/`) + a pre-commit stub | Project-specific drift checks, lint config, file-size hooks |
 | **Surfaces** | Empty (this is a template) | Your product code |
 | **Model** | (vendor-owned, nothing to add) | n/a |
 

@@ -81,10 +81,16 @@ the world:
 | a URL the doc relies on | an HTTP fetch returning 2xx for the *claim*, not just the host |
 
 **Who runs the command — and who only flags.** The cross-vendor
-reviewer runs read-only (the dispatcher invokes `claude` with
-`--allowedTools "Read,Grep,Glob"`, `codex` with `--sandbox read-only`,
-and Antigravity only after its v1.1.4 strict-policy refusal probe and
-preflight pass, with the exact target embedded so no filesystem read grant is
+reviewer is intended to run read-only (the dispatcher invokes `claude`
+with `--safe-mode --allowedTools "Read,Grep,Glob"` — ⚠️ as of
+2026-11-08 that is **not an enforced restriction**: `--allowedTools`
+auto-approves the listed tools rather than removing others, and user
+`permissions.allow` rules stay in force under `--safe-mode`; hardening
+is an open item in
+[`refresh-log.md`](../agents/refresh-log.md#open-items-carried-forward) —
+`codex` with `--sandbox read-only`,
+and Antigravity only after its strict-policy refusal probe — recorded
+on the exact installed `agy` version — and preflight pass, with the exact target embedded so no filesystem read grant is
 needed). It therefore **cannot** run these
 commands, and must not be told to. Its job is to **spot** every
 externally-falsifiable claim in the diff and list them for
